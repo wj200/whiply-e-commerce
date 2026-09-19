@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { Prose, AwaitingCopy } from '@/components/store/prose'
-import { PageHeader } from '@/components/store/page-header'
+import { Prose, AwaitingCopy, PageHeader } from '@/components/store/prose'
+
 
 export const metadata: Metadata = { title: 'Privacy Notice' }
 

@@ -1,100 +1,79 @@
 import Link from 'next/link'
-import { formatSgd, cents } from '@/lib/money'
+import { Wordmark } from './wordmark'
+import { ArrowUpRight } from '@/components/ui/arrow'
 
-export function Footer({
-  deliveryFeeCents,
-  freeDeliveryThresholdCents,
-}: {
-  deliveryFeeCents: number
-  freeDeliveryThresholdCents: number
-}) {
+const COLUMNS = [
+  {
+    heading: 'The collection',
+    links: [
+      { href: '/shop', label: 'Shop all essentials', arrow: true },
+      { href: '/baking-equipment', label: 'Scales & mixers' },
+      { href: '/cream-chargers', label: 'Cream chargers' },
+      { href: '/bulk-orders', label: 'Bulk orders' },
+    ],
+  },
+  {
+    heading: 'The details',
+    links: [
+      { href: '/policies/delivery', label: 'Delivery in Singapore' },
+      { href: '/policies/usage', label: 'Culinary usage agreement' },
+      { href: '/policies/terms', label: 'Terms & conditions' },
+      { href: '/policies/returns', label: 'Returns & refunds' },
+      { href: '/policies/privacy', label: 'Privacy' },
+    ],
+  },
+]
+
+export function Footer() {
   return (
-    <footer className="mt-20 border-t border-line bg-shell">
-      <div className="wrap grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="mt-4 border-t border-line">
+      <div className="wrap grid gap-14 py-16 lg:grid-cols-[1.3fr_1fr_1fr_1fr] lg:gap-10 lg:py-20">
         <div>
-          <p className="font-display text-xl font-bold text-ink">WHIPLY</p>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-            Professional baking and culinary supply. Food-grade N₂O cream chargers and
-            equipment, delivered across Singapore.
-          </p>
+          <Wordmark size="lg" />
+          <p className="mt-6 text-[1rem] text-body">For kitchens with possibilities.</p>
+          <p className="mono mt-10 text-faint">Based in Singapore. Made for more.</p>
         </div>
 
+        {COLUMNS.map((column) => (
+          <div key={column.heading}>
+            <p className="mono text-faint">{column.heading}</p>
+            <ul className="mt-5 space-y-3.5">
+              {column.links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="group inline-flex items-center gap-1.5 text-[0.9375rem] text-body transition-colors hover:text-ink"
+                  >
+                    {link.label}
+                    {'arrow' in link && link.arrow ? (
+                      <ArrowUpRight size={12} className="transition-transform group-hover:-translate-y-px" />
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-faint">Shop</p>
-          <ul className="mt-3 space-y-2 text-sm">
+          <p className="mono text-faint">Good to know</p>
+          <ul className="mt-5 space-y-3.5 text-[0.9375rem] text-muted">
+            <li>All prices in Singapore dollars.</li>
+            <li>Secure checkout by HitPay. We never see your card.</li>
+            <li>No account needed — keep your order reference.</li>
             <li>
-              <Link href="/cream-chargers" className="text-body hover:text-accent">
-                Cream Chargers
-              </Link>
-            </li>
-            <li>
-              <Link href="/baking-equipment" className="text-body hover:text-accent">
-                Baking Equipment
-              </Link>
-            </li>
-            <li>
-              <Link href="/bulk-orders" className="text-body hover:text-accent">
-                Bulk Orders
+              <Link href="/contact" className="text-body underline underline-offset-4 hover:text-ink">
+                Questions? Get in touch.
               </Link>
             </li>
           </ul>
-        </div>
-
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-faint">Company</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <Link href="/about" className="text-body hover:text-accent">
-                About
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="text-body hover:text-accent">
-                Contact
-              </Link>
-            </li>
-            <li>
-              <Link href="/policies/delivery" className="text-body hover:text-accent">
-                Delivery Policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/policies/returns" className="text-body hover:text-accent">
-                Returns &amp; Refunds
-              </Link>
-            </li>
-            <li>
-              <Link href="/policies/terms" className="text-body hover:text-accent">
-                Terms of Sale
-              </Link>
-            </li>
-            <li>
-              <Link href="/policies/privacy" className="text-body hover:text-accent">
-                Privacy Notice
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-faint">Delivery</p>
-          <p className="mt-3 text-sm leading-relaxed text-body">
-            Free delivery on orders{' '}
-            <strong className="text-ink">
-              {formatSgd(cents(freeDeliveryThresholdCents))}+
-            </strong>
-            .<br />
-            Below that, a flat{' '}
-            <strong className="text-ink">{formatSgd(cents(deliveryFeeCents))}</strong> applies.
-          </p>
-          <p className="mt-2 text-sm text-muted">Delivery only — no self-collection.</p>
         </div>
       </div>
 
       <div className="border-t border-line">
-        <div className="wrap flex flex-col gap-1 py-5 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} WHIPLY. All rights reserved.</p>
-          <p>Singapore</p>
+        <div className="wrap flex flex-col gap-2 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="mono-sm text-faint">© {new Date().getFullYear()} WHIPLY</p>
+          <p className="mono-sm text-faint">Singapore</p>
         </div>
       </div>
     </footer>

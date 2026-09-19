@@ -1,26 +1,30 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
+import { ArrowUpRight } from './arrow'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+/**
+ * Buttons are SHARP RECTANGLES. No radius anywhere in this system except
+ * filter chips and the circular arrow discs.
+ */
+type Variant = 'primary' | 'secondary' | 'onDark' | 'quiet'
 type Size = 'sm' | 'md' | 'lg'
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold ' +
-  'transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ' +
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'inline-flex items-center justify-between gap-6 font-medium transition-colors duration-150 ' +
+  'disabled:cursor-not-allowed disabled:opacity-40'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent-hover',
-  secondary: 'bg-white text-ink border border-line hover:bg-shell hover:border-accent-line',
-  ghost: 'bg-transparent text-ink hover:bg-shell',
-  danger: 'bg-danger text-white hover:brightness-110',
+  primary: 'bg-ink text-paper hover:bg-body',
+  secondary: 'border border-line-strong bg-transparent text-ink hover:border-ink',
+  onDark: 'bg-paper text-ink hover:bg-white',
+  quiet: 'bg-veil text-ink hover:bg-frame',
 }
 
 const sizes: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-5 text-[0.95rem]',
-  lg: 'h-13 px-7 text-base',
+  sm: 'h-10 px-4 text-[0.8125rem]',
+  md: 'h-12 px-5 text-[0.875rem]',
+  lg: 'h-[3.75rem] px-6 text-[0.9375rem]',
 }
 
 export function buttonClasses(variant: Variant = 'primary', size: Size = 'md', extra?: string) {
@@ -29,22 +33,41 @@ export function buttonClasses(variant: Variant = 'primary', size: Size = 'md', e
 
 export const Button = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }
->(function Button({ variant = 'primary', size = 'md', className, ...props }, ref) {
-  return <button ref={ref} className={buttonClasses(variant, size, className)} {...props} />
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: Variant
+    size?: Size
+    arrow?: boolean
+  }
+>(function Button({ variant = 'primary', size = 'md', arrow, className, children, ...props }, ref) {
+  return (
+    <button
+      ref={ref}
+      className={buttonClasses(variant, size, cn(arrow ? '' : 'justify-center gap-2', className))}
+      {...props}
+    >
+      {children}
+      {arrow ? <ArrowUpRight /> : null}
+    </button>
+  )
 })
 
 export function ButtonLink({
   variant = 'primary',
   size = 'md',
+  arrow,
   className,
   href,
   children,
   ...props
-}: React.ComponentProps<typeof Link> & { variant?: Variant; size?: Size }) {
+}: React.ComponentProps<typeof Link> & { variant?: Variant; size?: Size; arrow?: boolean }) {
   return (
-    <Link href={href} className={buttonClasses(variant, size, className)} {...props}>
+    <Link
+      href={href}
+      className={buttonClasses(variant, size, cn(arrow ? '' : 'justify-center gap-2', className))}
+      {...props}
+    >
       {children}
+      {arrow ? <ArrowUpRight /> : null}
     </Link>
   )
 }

@@ -1,6 +1,9 @@
 import { CartProvider } from '@/lib/cart/context'
+import { BagProvider } from '@/components/store/bag-context'
+import { BagDrawer } from '@/components/store/bag-drawer'
 import { Header } from '@/components/store/header'
 import { Footer } from '@/components/store/footer'
+import { AnnouncementBar } from '@/components/store/announcement-bar'
 import { getPricingSettings } from '@/lib/domain/settings'
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -8,20 +11,19 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <CartProvider>
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
-      >
-        Skip to content
-      </a>
-      <Header />
-      <main id="main" className="min-h-[60vh]">
-        {children}
-      </main>
-      <Footer
-        deliveryFeeCents={settings.deliveryFeeCents}
-        freeDeliveryThresholdCents={settings.freeDeliveryThresholdCents}
-      />
+      <BagProvider>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:bg-ink focus:px-4 focus:py-2 focus:text-paper"
+        >
+          Skip to content
+        </a>
+        <AnnouncementBar freeDeliveryThresholdCents={settings.freeDeliveryThresholdCents} />
+        <Header />
+        <main id="main">{children}</main>
+        <Footer />
+        <BagDrawer />
+      </BagProvider>
     </CartProvider>
   )
 }

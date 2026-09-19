@@ -2259,6 +2259,7 @@ export namespace Prisma {
     name: string | null
     category: $Enums.ProductCategory | null
     shortDesc: string | null
+    cardLabel: string | null
     description: string | null
     priceCents: number | null
     imageUrl: string | null
@@ -2278,6 +2279,7 @@ export namespace Prisma {
     name: string | null
     category: $Enums.ProductCategory | null
     shortDesc: string | null
+    cardLabel: string | null
     description: string | null
     priceCents: number | null
     imageUrl: string | null
@@ -2297,6 +2299,7 @@ export namespace Prisma {
     name: number
     category: number
     shortDesc: number
+    cardLabel: number
     description: number
     specs: number
     priceCents: number
@@ -2333,6 +2336,7 @@ export namespace Prisma {
     name?: true
     category?: true
     shortDesc?: true
+    cardLabel?: true
     description?: true
     priceCents?: true
     imageUrl?: true
@@ -2352,6 +2356,7 @@ export namespace Prisma {
     name?: true
     category?: true
     shortDesc?: true
+    cardLabel?: true
     description?: true
     priceCents?: true
     imageUrl?: true
@@ -2371,6 +2376,7 @@ export namespace Prisma {
     name?: true
     category?: true
     shortDesc?: true
+    cardLabel?: true
     description?: true
     specs?: true
     priceCents?: true
@@ -2478,6 +2484,7 @@ export namespace Prisma {
     name: string
     category: $Enums.ProductCategory
     shortDesc: string
+    cardLabel: string | null
     description: string
     specs: JsonValue
     priceCents: number
@@ -2517,6 +2524,7 @@ export namespace Prisma {
     name?: boolean
     category?: boolean
     shortDesc?: boolean
+    cardLabel?: boolean
     description?: boolean
     specs?: boolean
     priceCents?: boolean
@@ -2539,6 +2547,7 @@ export namespace Prisma {
     name?: boolean
     category?: boolean
     shortDesc?: boolean
+    cardLabel?: boolean
     description?: boolean
     specs?: boolean
     priceCents?: boolean
@@ -2559,6 +2568,7 @@ export namespace Prisma {
     name?: boolean
     category?: boolean
     shortDesc?: boolean
+    cardLabel?: boolean
     description?: boolean
     specs?: boolean
     priceCents?: boolean
@@ -2579,6 +2589,7 @@ export namespace Prisma {
     name?: boolean
     category?: boolean
     shortDesc?: boolean
+    cardLabel?: boolean
     description?: boolean
     specs?: boolean
     priceCents?: boolean
@@ -2592,7 +2603,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sku" | "slug" | "name" | "category" | "shortDesc" | "description" | "specs" | "priceCents" | "imageUrl" | "imageAlt" | "stockQty" | "lowStockAt" | "isActive" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sku" | "slug" | "name" | "category" | "shortDesc" | "cardLabel" | "description" | "specs" | "priceCents" | "imageUrl" | "imageAlt" | "stockQty" | "lowStockAt" | "isActive" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     orderItems?: boolean | Product$orderItemsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -2612,6 +2623,7 @@ export namespace Prisma {
       name: string
       category: $Enums.ProductCategory
       shortDesc: string
+      cardLabel: string | null
       description: string
       specs: Prisma.JsonValue
       priceCents: number
@@ -3053,6 +3065,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Product", 'String'>
     readonly category: FieldRef<"Product", 'ProductCategory'>
     readonly shortDesc: FieldRef<"Product", 'String'>
+    readonly cardLabel: FieldRef<"Product", 'String'>
     readonly description: FieldRef<"Product", 'String'>
     readonly specs: FieldRef<"Product", 'Json'>
     readonly priceCents: FieldRef<"Product", 'Int'>
@@ -17397,6 +17410,7 @@ export namespace Prisma {
     name: 'name',
     category: 'category',
     shortDesc: 'shortDesc',
+    cardLabel: 'cardLabel',
     description: 'description',
     specs: 'specs',
     priceCents: 'priceCents',
@@ -17884,6 +17898,7 @@ export namespace Prisma {
     name?: StringFilter<"Product"> | string
     category?: EnumProductCategoryFilter<"Product"> | $Enums.ProductCategory
     shortDesc?: StringFilter<"Product"> | string
+    cardLabel?: StringNullableFilter<"Product"> | string | null
     description?: StringFilter<"Product"> | string
     specs?: JsonFilter<"Product">
     priceCents?: IntFilter<"Product"> | number
@@ -17905,6 +17920,7 @@ export namespace Prisma {
     name?: SortOrder
     category?: SortOrder
     shortDesc?: SortOrder
+    cardLabel?: SortOrderInput | SortOrder
     description?: SortOrder
     specs?: SortOrder
     priceCents?: SortOrder
@@ -17929,6 +17945,7 @@ export namespace Prisma {
     name?: StringFilter<"Product"> | string
     category?: EnumProductCategoryFilter<"Product"> | $Enums.ProductCategory
     shortDesc?: StringFilter<"Product"> | string
+    cardLabel?: StringNullableFilter<"Product"> | string | null
     description?: StringFilter<"Product"> | string
     specs?: JsonFilter<"Product">
     priceCents?: IntFilter<"Product"> | number
@@ -17950,6 +17967,7 @@ export namespace Prisma {
     name?: SortOrder
     category?: SortOrder
     shortDesc?: SortOrder
+    cardLabel?: SortOrderInput | SortOrder
     description?: SortOrder
     specs?: SortOrder
     priceCents?: SortOrder
@@ -17978,6 +17996,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Product"> | string
     category?: EnumProductCategoryWithAggregatesFilter<"Product"> | $Enums.ProductCategory
     shortDesc?: StringWithAggregatesFilter<"Product"> | string
+    cardLabel?: StringNullableWithAggregatesFilter<"Product"> | string | null
     description?: StringWithAggregatesFilter<"Product"> | string
     specs?: JsonWithAggregatesFilter<"Product">
     priceCents?: IntWithAggregatesFilter<"Product"> | number
@@ -19036,6 +19055,7 @@ export namespace Prisma {
     name: string
     category: $Enums.ProductCategory
     shortDesc: string
+    cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents: number
@@ -19057,6 +19077,7 @@ export namespace Prisma {
     name: string
     category: $Enums.ProductCategory
     shortDesc: string
+    cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents: number
@@ -19078,6 +19099,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     category?: EnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory
     shortDesc?: StringFieldUpdateOperationsInput | string
+    cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -19099,6 +19121,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     category?: EnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory
     shortDesc?: StringFieldUpdateOperationsInput | string
+    cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -19120,6 +19143,7 @@ export namespace Prisma {
     name: string
     category: $Enums.ProductCategory
     shortDesc: string
+    cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents: number
@@ -19140,6 +19164,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     category?: EnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory
     shortDesc?: StringFieldUpdateOperationsInput | string
+    cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -19160,6 +19185,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     category?: EnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory
     shortDesc?: StringFieldUpdateOperationsInput | string
+    cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -20391,6 +20417,21 @@ export namespace Prisma {
     notIn?: $Enums.ProductCategory[] | ListEnumProductCategoryFieldRefInput<$PrismaModel>
     not?: NestedEnumProductCategoryFilter<$PrismaModel> | $Enums.ProductCategory
   }
+
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -20424,21 +20465,6 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
-  }
-
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type BoolFilter<$PrismaModel = never> = {
@@ -20479,6 +20505,7 @@ export namespace Prisma {
     name?: SortOrder
     category?: SortOrder
     shortDesc?: SortOrder
+    cardLabel?: SortOrder
     description?: SortOrder
     specs?: SortOrder
     priceCents?: SortOrder
@@ -20506,6 +20533,7 @@ export namespace Prisma {
     name?: SortOrder
     category?: SortOrder
     shortDesc?: SortOrder
+    cardLabel?: SortOrder
     description?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrder
@@ -20525,6 +20553,7 @@ export namespace Prisma {
     name?: SortOrder
     category?: SortOrder
     shortDesc?: SortOrder
+    cardLabel?: SortOrder
     description?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrder
@@ -20586,6 +20615,24 @@ export namespace Prisma {
     _min?: NestedEnumProductCategoryFilter<$PrismaModel>
     _max?: NestedEnumProductCategoryFilter<$PrismaModel>
   }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
@@ -20627,24 +20674,6 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -21600,16 +21629,16 @@ export namespace Prisma {
     set?: $Enums.ProductCategory
   }
 
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
   }
 
   export type BoolFieldUpdateOperationsInput = {
@@ -22160,17 +22189,6 @@ export namespace Prisma {
     not?: NestedEnumProductCategoryFilter<$PrismaModel> | $Enums.ProductCategory
   }
 
-  export type NestedIntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type NestedStringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -22183,6 +22201,17 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedIntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
@@ -22241,6 +22270,34 @@ export namespace Prisma {
     _min?: NestedEnumProductCategoryFilter<$PrismaModel>
     _max?: NestedEnumProductCategoryFilter<$PrismaModel>
   }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -22290,34 +22347,6 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -23131,6 +23160,7 @@ export namespace Prisma {
     name: string
     category: $Enums.ProductCategory
     shortDesc: string
+    cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents: number
@@ -23151,6 +23181,7 @@ export namespace Prisma {
     name: string
     category: $Enums.ProductCategory
     shortDesc: string
+    cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents: number
@@ -23256,6 +23287,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     category?: EnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory
     shortDesc?: StringFieldUpdateOperationsInput | string
+    cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -23276,6 +23308,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     category?: EnumProductCategoryFieldUpdateOperationsInput | $Enums.ProductCategory
     shortDesc?: StringFieldUpdateOperationsInput | string
+    cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
     priceCents?: IntFieldUpdateOperationsInput | number

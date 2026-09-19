@@ -17,7 +17,8 @@ const PRODUCTS = [
     slug: 'food-grade-n2o-cream-charger-1l-640g',
     name: 'Food-Grade N₂O Cream Charger — 1L / 640g',
     category: ProductCategory.CREAM_CHARGERS,
-    shortDesc: 'Food-grade nitrous oxide for professional cream whipping. 1L / 640g.',
+    cardLabel: 'A little extraordinary',
+    shortDesc: '640 g · Culinary use only',
     description:
       'A food-grade nitrous oxide (N₂O) cream charger sized for professional kitchen use. ' +
       'Intended for culinary cream whipping and related preparations with a compatible ' +
@@ -47,7 +48,8 @@ const PRODUCTS = [
     slug: 'food-grade-n2o-cream-charger-3-3l-2000g',
     name: 'Food-Grade N₂O Cream Charger — 3.3L / 2,000g',
     category: ProductCategory.CREAM_CHARGERS,
-    shortDesc: 'Food-grade nitrous oxide for high-volume service. 3.3L / 2,000g.',
+    cardLabel: 'More room to create',
+    shortDesc: '2,000 g · Culinary use only',
     description:
       'A larger food-grade nitrous oxide (N₂O) cream charger for kitchens working at ' +
       'volume. Intended for culinary cream whipping and related preparations with a ' +
@@ -77,7 +79,8 @@ const PRODUCTS = [
     slug: 'precision-digital-weighing-scale',
     name: 'Precision Digital Weighing Scale',
     category: ProductCategory.BAKING_EQUIPMENT,
-    shortDesc: 'Accurate, repeatable measurement for professional baking.',
+    cardLabel: 'The essential',
+    shortDesc: 'Measured to perfection.',
     description:
       'A precision digital weighing scale for bakery and pastry work, where consistency ' +
       'depends on accurate measurement. Specifications below are maintained by WHIPLY ' +
@@ -97,7 +100,8 @@ const PRODUCTS = [
     slug: 'industrial-grade-professional-mixer',
     name: 'Industrial-Grade Professional Mixer',
     category: ProductCategory.BAKING_EQUIPMENT,
-    shortDesc: 'Built for continuous professional use.',
+    cardLabel: 'Built for more',
+    shortDesc: 'Power behind every batch.',
     description:
       'An industrial-grade stand mixer intended for continuous professional kitchen use. ' +
       'Specifications below are maintained by WHIPLY and reflect the supplier ' +
@@ -123,6 +127,7 @@ async function main() {
         slug: p.slug,
         name: p.name,
         category: p.category,
+        cardLabel: p.cardLabel,
         shortDesc: p.shortDesc,
         description: p.description,
         specs: p.specs,

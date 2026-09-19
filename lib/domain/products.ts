@@ -20,6 +20,7 @@ export type StoreProduct = {
   slug: string
   name: string
   category: ProductCategory
+  cardLabel: string | null
   shortDesc: string
   description: string
   specs: ProductSpec[]
@@ -37,6 +38,7 @@ function toStoreProduct(row: {
   slug: string
   name: string
   category: ProductCategory
+  cardLabel: string | null
   shortDesc: string
   description: string
   specs: unknown
@@ -52,6 +54,7 @@ function toStoreProduct(row: {
     slug: row.slug,
     name: row.name,
     category: row.category,
+    cardLabel: row.cardLabel,
     shortDesc: row.shortDesc,
     description: row.description,
     specs: parseSpecs(row.specs),

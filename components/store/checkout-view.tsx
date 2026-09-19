@@ -1,20 +1,24 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCart } from '@/lib/cart/context'
 import { usePricedCart } from '@/lib/cart/use-priced-cart'
 import { formatSgd, cents } from '@/lib/money'
-import { OrderSummary } from './order-summary'
-import { PromoCodeField } from './promo-code-field'
-import { Button, ButtonLink } from '@/components/ui/button'
-import { Field, Input, Textarea } from '@/components/ui/field'
+import { productImageSrc } from '@/lib/media/product-image'
+import { CheckoutFields, type FieldErrors } from './checkout-fields'
+import { ButtonLink } from '@/components/ui/button'
+import { inputClasses } from '@/components/ui/field'
 
-type FieldErrors = Partial<Record<string, string>>
-
+/**
+ * The full-page checkout. Same endpoints and same field set as the bag
+ * drawer — the drawer is the primary surface, this is the durable URL.
+ */
 export function CheckoutView() {
   const { cart } = useCart()
   const [code, setCode] = useState<string | null>(null)
+  const [codeInput, setCodeInput] = useState('')
   const { data, loading, isEmpty, hydrated } = usePricedCart(code)
 
   const [submitting, setSubmitting] = useState(false)
@@ -51,7 +55,6 @@ export function CheckoutView() {
           idempotencyKey: crypto.randomUUID(),
         }),
       })
-
       const body = (await res.json()) as {
         checkoutUrl?: string
         error?: string
@@ -73,12 +76,9 @@ export function CheckoutView() {
       }
 
       if (body.checkoutUrl) {
-        // Leave for HitPay. From here the browser is irrelevant: the order is
-        // confirmed by the signed webhook, not by the customer coming back.
         window.location.href = body.checkoutUrl
         return
       }
-
       setFormError('Payment could not be started. Please try again.')
       setSubmitting(false)
     } catch {
@@ -89,182 +89,188 @@ export function CheckoutView() {
 
   if (!hydrated || (loading && !data)) {
     return (
-      <div className="wrap py-20">
-        <p className="text-muted">Loading…</p>
+      <div className="wrap py-28">
+        <p className="mono text-faint">Loading…</p>
       </div>
     )
   }
 
   if (isEmpty || !data || data.lines.length === 0) {
     return (
-      <div className="wrap py-20 text-center">
-        <h1 className="font-display text-3xl font-bold text-ink">Nothing to check out</h1>
-        <p className="mt-3 text-muted">Your cart is empty.</p>
-        <ButtonLink href="/shop" className="mt-7">
-          Browse the shop
+      <div className="wrap py-28 text-center">
+        <h1 className="display-sm text-[2rem]">Nothing to check out</h1>
+        <p className="mt-4 text-muted">Your bag is empty.</p>
+        <ButtonLink href="/shop" arrow className="mt-9">
+          Shop all essentials
         </ButtonLink>
       </div>
     )
   }
 
   return (
-    <div className="wrap py-10">
-      <h1 className="font-display text-3xl font-bold tracking-tight text-ink md:text-4xl">
-        Checkout
-      </h1>
-      <p className="mt-2 text-muted">
-        Delivered across Singapore. No account needed —{' '}
-        <strong className="font-semibold text-ink">keep your order reference</strong> after payment.
+    <div className="wrap py-12 lg:py-16">
+      <p className="mono text-faint">Your next possibility</p>
+      <h1 className="display-sm mt-5 text-[clamp(1.9rem,3.6vw,2.75rem)]">Delivery details</h1>
+      <p className="mt-4 text-[0.9375rem] text-muted">
+        Singapore only. All amounts in SGD. No account needed —{' '}
+        <strong className="font-medium text-ink">keep your order reference</strong> after payment.
       </p>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-8 grid gap-10 lg:grid-cols-[1fr_22rem] lg:gap-12">
-        <div className="space-y-8">
-          <section>
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
-              Your details
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="name" label="Full name" required error={errors.name} className="sm:col-span-2">
-                <Input id="name" name="name" autoComplete="name" required aria-invalid={!!errors.name} />
-              </Field>
-              <Field id="email" label="Email" required error={errors.email} hint="Your receipt is sent here.">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  required
-                  aria-invalid={!!errors.email}
-                />
-              </Field>
-              <Field id="phone" label="Mobile number" required error={errors.phone} hint="For the courier.">
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="9123 4567"
-                  required
-                  aria-invalid={!!errors.phone}
-                />
-              </Field>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
-              Delivery address
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                id="addressLine1"
-                label="Address"
-                required
-                error={errors.addressLine1}
-                className="sm:col-span-2"
-              >
-                <Input
-                  id="addressLine1"
-                  name="addressLine1"
-                  autoComplete="address-line1"
-                  required
-                  aria-invalid={!!errors.addressLine1}
-                />
-              </Field>
-              <Field id="addressLine2" label="Unit / floor" error={errors.addressLine2}>
-                <Input id="addressLine2" name="addressLine2" autoComplete="address-line2" placeholder="#04-05" />
-              </Field>
-              <Field id="postalCode" label="Postal code" required error={errors.postalCode}>
-                <Input
-                  id="postalCode"
-                  name="postalCode"
-                  inputMode="numeric"
-                  autoComplete="postal-code"
-                  maxLength={6}
-                  placeholder="123456"
-                  required
-                  aria-invalid={!!errors.postalCode}
-                />
-              </Field>
-              <Field
-                id="instructions"
-                label="Delivery instructions"
-                error={errors.instructions}
-                className="sm:col-span-2"
-              >
-                <Textarea id="instructions" name="instructions" maxLength={280} rows={3} />
-              </Field>
-            </div>
-            <p className="mt-3 rounded-[var(--radius-control)] bg-shell px-4 py-3 text-sm text-muted">
-              We deliver to your address. There is no self-collection option.
-            </p>
-          </section>
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="mt-12 grid gap-14 lg:grid-cols-[1fr_24rem] lg:gap-16"
+      >
+        <div>
+          <CheckoutFields errors={errors} />
+          <p className="mono mt-8 border-t border-line pt-6 text-faint">
+            Delivery only — no self-collection.
+          </p>
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-[var(--radius-card)] border border-line bg-shell p-5">
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
-              Order summary
-            </h2>
+        <aside className="lg:sticky lg:top-28 lg:self-start">
+          <p className="mono border-b border-line pb-4 text-faint">Order summary</p>
 
-            <ul className="mb-4 space-y-2 border-b border-line pb-4">
-              {data.lines.map((line) => (
-                <li key={line.sku} className="flex justify-between gap-3 text-sm">
-                  <span className="min-w-0 text-body">
-                    <span className="font-semibold text-ink">{line.quantity}×</span> {line.name}
-                  </span>
-                  <span className="shrink-0 font-semibold text-ink tnum">
+          <ul className="divide-y divide-line">
+            {data.lines.map((line) => (
+              <li key={line.sku} className="flex gap-4 py-5">
+                <div className="relative h-20 w-16 shrink-0 overflow-hidden bg-frame">
+                  <Image
+                    src={productImageSrc({ sku: line.sku, imageUrl: line.imageUrl })}
+                    alt=""
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[0.9375rem] font-medium leading-snug text-ink">
+                      {line.name}
+                    </p>
+                    <p className="figure mt-1 text-[0.8125rem] text-muted">×{line.quantity}</p>
+                  </div>
+                  <p className="figure shrink-0 text-[0.9375rem] text-ink">
                     {formatSgd(cents(line.lineTotalCents), { alwaysCents: true })}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
 
-            <div className="mb-5">
-              <PromoCodeField
-                appliedCode={data.appliedCode?.code ?? null}
-                codeError={data.codeError}
-                onApply={setCode}
-                onRemove={() => setCode(null)}
-                disabled={loading || submitting}
-              />
-            </div>
-
-            <OrderSummary
-              subtotalCents={data.subtotalCents}
-              discountCents={data.discountCents}
-              deliveryFeeCents={data.deliveryFeeCents}
-              totalCents={data.totalCents}
-              freeDeliveryApplied={data.freeDeliveryApplied}
-              amountToFreeDeliveryCents={data.amountToFreeDeliveryCents}
-              appliedCodeLabel={data.appliedCode?.code ?? null}
-            />
-
-            {formError ? (
-              <p role="alert" className="mt-4 rounded-[var(--radius-control)] bg-danger-soft px-3 py-2.5 text-sm text-danger">
-                {formError}
+          <div className="border-t border-line py-6">
+            <p className="mono mb-3 text-faint">Promo protocol</p>
+            {data.appliedCode ? (
+              <div className="flex items-center justify-between gap-3 border border-line-strong px-3.5 py-3">
+                <p className="figure text-[0.875rem] text-ink">{data.appliedCode.code} applied</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCode(null)
+                    setCodeInput('')
+                  }}
+                  className="mono-sm text-muted underline underline-offset-2 hover:text-ink"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex">
+                <input
+                  aria-label="Voucher code"
+                  placeholder="ENTER VOUCHER CODE"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  className={`${inputClasses} figure border-r-0 uppercase`}
+                />
+                <button
+                  type="button"
+                  disabled={!codeInput.trim()}
+                  onClick={() => setCode(codeInput.trim())}
+                  className="h-12 shrink-0 bg-faint px-5 text-[0.875rem] font-medium text-pure transition-colors hover:bg-ink disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+            {data.codeError ? (
+              <p role="alert" className="mono-sm mt-2.5 text-[#9c3b2b]">
+                {data.codeError}
               </p>
             ) : null}
+          </div>
 
-            <Button type="submit" size="lg" className="mt-5 w-full" disabled={submitting || loading}>
-              {submitting ? 'Starting payment…' : 'Pay Now'}
-            </Button>
-
-            <p className="mt-3 text-center text-xs leading-relaxed text-muted">
-              You will be taken to our payment provider to pay securely. WHIPLY never sees your
-              card details.
-            </p>
-
-            <p className="mt-3 text-center text-xs text-muted">
-              <Link href="/cart" className="underline underline-offset-2 hover:no-underline">
-                Back to cart
-              </Link>
+          <div className="border-t border-line py-6">
+            <SummaryRow
+              label="Subtotal"
+              value={formatSgd(cents(data.subtotalCents), { alwaysCents: true })}
+            />
+            {data.discountCents > 0 ? (
+              <SummaryRow
+                label="Discount"
+                value={`−${formatSgd(cents(data.discountCents), { alwaysCents: true })}`}
+              />
+            ) : null}
+            <SummaryRow
+              label="Delivery"
+              value={
+                data.freeDeliveryApplied
+                  ? 'FREE'
+                  : formatSgd(cents(data.deliveryFeeCents), { alwaysCents: true })
+              }
+            />
+            <p className="mt-2 text-[0.8125rem] text-muted">
+              Free above {formatSgd(cents(data.freeDeliveryThresholdCents))} after discounts.{' '}
+              {formatSgd(cents(data.baseDeliveryFeeCents))} otherwise.
             </p>
           </div>
+
+          <div className="flex items-baseline justify-between border-t border-line py-6">
+            <span className="text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
+              Estimated total
+            </span>
+            <span className="figure text-[1.375rem] font-semibold text-ink">
+              {formatSgd(cents(data.totalCents), { alwaysCents: true })}
+            </span>
+          </div>
+
+          {formError ? (
+            <p role="alert" className="mono-sm mb-4 border border-[#9c3b2b]/35 px-3 py-2.5 text-[#9c3b2b]">
+              {formError}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={submitting || loading}
+            className="flex h-[3.5rem] w-full items-center justify-between bg-ink px-6 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-body disabled:opacity-40"
+          >
+            {submitting ? 'Starting payment…' : 'Pay now'}
+            <span className="figure">
+              {formatSgd(cents(data.totalCents), { alwaysCents: true })}
+            </span>
+          </button>
+
+          <p className="mt-4 text-[0.75rem] leading-relaxed text-muted">
+            You will be taken to HitPay to pay securely. WHIPLY never sees your card details.
+          </p>
+
+          <p className="mt-4">
+            <Link href="/shop" className="mono text-faint underline underline-offset-4 hover:text-ink">
+              Continue shopping
+            </Link>
+          </p>
         </aside>
       </form>
+    </div>
+  )
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1.5">
+      <span className="text-[0.9375rem] text-body">{label}</span>
+      <span className="figure text-[0.9375rem] text-ink">{value}</span>
     </div>
   )
 }

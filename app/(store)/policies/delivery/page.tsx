@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { Prose, AwaitingCopy } from '@/components/store/prose'
-import { PageHeader } from '@/components/store/page-header'
+import { Prose, AwaitingCopy, PageHeader } from '@/components/store/prose'
+
 import { getPricingSettings } from '@/lib/domain/settings'
 import { formatSgd, cents } from '@/lib/money'
 

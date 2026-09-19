@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" role="img" aria-label="A professional baking work surface">
   <defs>
     <linearGradient id="hbg" x1="0" y1="0" x2="0.5" y2="1">
-      <stop offset="0%" stop-color="#FDFBF8"/>
-      <stop offset="50%" stop-color="#F4EBE0"/>
-      <stop offset="100%" stop-color="#E6D8C7"/>
+      <stop offset="0%" stop-color="#F4F1EA"/>
+      <stop offset="50%" stop-color="#EAE5DA"/>
+      <stop offset="100%" stop-color="#DED7C8"/>
     </linearGradient>
     <radialGradient id="hlight" cx="34%" cy="24%" r="58%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
@@ -26,7 +26,7 @@
   <rect y="812" width="1600" height="288" fill="#D9C9B4" opacity="0.5"/>
   <rect y="812" width="1600" height="6" fill="#C3AF95" opacity="0.6"/>
 
-  <ellipse cx="560" cy="820" rx="300" ry="34" fill="#BBA88F" opacity="0.4"/>
+  <ellipse cx="560" cy="820" rx="300" ry="34" fill="#C6C2B5" opacity="0.4"/>
   <path d="M352 606 L768 606 Q792 606 786 638 L742 792 Q734 822 702 822 L418 822 Q386 822 378 792 L334 638 Q328 606 352 606 Z" fill="url(#hsteel)"/>
   <path d="M352 606 L768 606 Q792 606 786 638 L742 792 Q734 822 702 822 L418 822 Q386 822 378 792 L334 638 Q328 606 352 606 Z" fill="none" stroke="#8C7F73" stroke-width="3" opacity="0.45"/>
   <ellipse cx="560" cy="608" rx="216" ry="30" fill="#F7F2EB" stroke="#9C8F81" stroke-width="2.5" opacity="0.9"/>
@@ -39,12 +39,12 @@
     <rect x="26" y="130" width="22" height="358" rx="11" fill="#ffffff" opacity="0.55"/>
     <rect x="26" y="34" width="98" height="74" rx="20" fill="#B9AEA1"/>
     <rect x="48" y="-12" width="54" height="56" rx="13" fill="#9C8F81"/>
-    <rect x="16" y="250" width="118" height="120" rx="12" fill="#A8551F"/>
-    <text x="75" y="296" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#FDF6EE" text-anchor="middle" letter-spacing="2">N₂O</text>
-    <text x="75" y="330" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="600" fill="#F2DCC8" text-anchor="middle" letter-spacing="1.5">FOOD</text>
-    <text x="75" y="352" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="600" fill="#F2DCC8" text-anchor="middle" letter-spacing="1.5">GRADE</text>
+    <rect x="16" y="250" width="118" height="120" rx="12" fill="#34362F"/>
+    <text x="75" y="296" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#F7F6F2" text-anchor="middle" letter-spacing="2">N₂O</text>
+    <text x="75" y="330" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="600" fill="#C8CABF" text-anchor="middle" letter-spacing="1.5">FOOD</text>
+    <text x="75" y="352" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="600" fill="#C8CABF" text-anchor="middle" letter-spacing="1.5">GRADE</text>
   </g>
-  <ellipse cx="1121" cy="846" rx="118" ry="22" fill="#BBA88F" opacity="0.4"/>
+  <ellipse cx="1121" cy="846" rx="118" ry="22" fill="#C6C2B5" opacity="0.4"/>
 
   <g transform="translate(830 596)" opacity="0.95">
     <path d="M40 0 L64 0 L58 150 L46 150 Z" fill="#8C7F73"/>

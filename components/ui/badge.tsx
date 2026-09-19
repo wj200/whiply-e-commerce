@@ -1,13 +1,13 @@
 import { cn } from '@/lib/utils/cn'
 
-type Tone = 'neutral' | 'success' | 'warn' | 'danger' | 'accent'
+type Tone = 'neutral' | 'success' | 'warn' | 'danger' | 'ink'
 
 const tones: Record<Tone, string> = {
-  neutral: 'bg-shell-deep text-muted',
-  success: 'bg-success-soft text-success',
-  warn: 'bg-warn-soft text-warn',
-  danger: 'bg-danger-soft text-danger',
-  accent: 'bg-accent-soft text-accent',
+  neutral: 'border-line-strong text-muted',
+  success: 'border-[#1f5d4c]/35 text-[#1f5d4c]',
+  warn: 'border-[#8a6410]/35 text-[#8a6410]',
+  danger: 'border-[#9c3b2b]/35 text-[#9c3b2b]',
+  ink: 'border-ink bg-ink text-paper',
 }
 
 export function Badge({
@@ -20,13 +20,7 @@ export function Badge({
   className?: string
 }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider',
-        tones[tone],
-        className,
-      )}
-    >
+    <span className={cn('mono-sm inline-flex border px-2.5 py-1', tones[tone], className)}>
       {children}
     </span>
   )

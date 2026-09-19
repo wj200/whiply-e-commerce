@@ -8,17 +8,20 @@ export const metadata: Metadata = {
 
 export default function CancelledPage() {
   return (
-    <div className="wrap max-w-xl py-20 text-center">
-      <h1 className="font-display text-3xl font-bold tracking-tight text-ink">
-        Payment wasn&apos;t completed
+    <div className="wrap max-w-2xl py-28 text-center">
+      <p className="mono text-faint">Nothing was charged</p>
+      <h1 className="display-sm mt-5 text-[clamp(1.9rem,4vw,2.5rem)]">
+        Payment wasn&apos;t completed.
       </h1>
-      <p className="mt-3 leading-relaxed text-muted">
-        Nothing has been charged and your cart is exactly as you left it.
+      <p className="mt-5 leading-relaxed text-muted">
+        Your bag is exactly as you left it.
       </p>
-      <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-        <ButtonLink href="/checkout">Try again</ButtonLink>
-        <ButtonLink href="/cart" variant="secondary">
-          Back to cart
+      <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+        <ButtonLink href="/checkout" arrow className="sm:min-w-[14rem]">
+          Try again
+        </ButtonLink>
+        <ButtonLink href="/shop" variant="secondary" className="sm:min-w-[14rem]">
+          Continue shopping
         </ButtonLink>
       </div>
     </div>

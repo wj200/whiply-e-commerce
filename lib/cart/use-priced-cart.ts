@@ -7,6 +7,7 @@ export type PricedLineDto = {
   sku: string
   name: string
   slug: string
+  shortDesc: string | null
   imageUrl: string | null
   unitPriceCents: number
   quantity: number
@@ -21,6 +22,8 @@ export type PricedCartDto = {
   totalCents: number
   freeDeliveryApplied: boolean
   amountToFreeDeliveryCents: number
+  baseDeliveryFeeCents: number
+  freeDeliveryThresholdCents: number
   appliedCode: { id: string; code: string } | null
   issues: { sku: string; kind: string; message: string; availableQty?: number }[]
   codeError: string | null

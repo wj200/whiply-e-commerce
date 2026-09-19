@@ -90,6 +90,7 @@ export async function priceBasket(input: {
         sku: product.sku,
         name: product.name,
         slug: product.slug,
+        shortDesc: product.shortDesc,
         priceCents: product.priceCents,
         imageUrl: product.imageUrl,
         stockQty: product.stockQty,

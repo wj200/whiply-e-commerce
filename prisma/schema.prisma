@@ -86,6 +86,7 @@ model Product {
   name         String
   category     ProductCategory
   shortDesc    String          @map("short_desc")
+  cardLabel    String?         @map("card_label")
   description  String
   specs        Json            @default("[]")
   priceCents   Int             @map("price_cents")

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { listByCategory, CATEGORY_META } from '@/lib/domain/products'
-import { ProductGrid } from '@/components/store/product-grid'
-import { PageHeader } from '@/components/store/page-header'
-import { DeliveryNote } from '@/components/store/delivery-note'
+import { listByCategory } from '@/lib/domain/products'
+import { ProductGrid, toCardData } from '@/components/store/product-grid'
+import { CollectionHeader } from '@/components/store/collection-header'
+import { DeliveryPanel } from '@/components/store/delivery-panel'
 import { getPricingSettings } from '@/lib/domain/settings'
 
 export const metadata: Metadata = {
@@ -16,30 +16,21 @@ export default async function CreamChargersPage() {
     listByCategory('CREAM_CHARGERS'),
     getPricingSettings(),
   ])
-  const meta = CATEGORY_META.CREAM_CHARGERS
 
   return (
     <>
-      <PageHeader title={meta.title} blurb={meta.blurb} />
-      <div className="wrap py-10">
-        <ProductGrid
-          priorityCount={2}
-          products={products.map((p) => ({
-            sku: p.sku,
-            slug: p.slug,
-            name: p.name,
-            shortDesc: p.shortDesc,
-            priceCents: p.priceCents,
-            imageUrl: p.imageUrl,
-            imageAlt: p.imageAlt,
-            inStock: p.inStock,
-            category: p.category,
-          }))}
-        />
-        <div className="mt-8 max-w-2xl">
-          <DeliveryNote {...settings} />
-        </div>
+      <CollectionHeader
+        eyebrow="Cream chargers"
+        title="Extraordinary, by the gram."
+        blurb="Food-grade N₂O for the perfect peak, in two sizes."
+        count={products.length}
+        active="chargers"
+        showUsageNote
+      />
+      <div className="wrap py-12 lg:py-16">
+        <ProductGrid products={products.map(toCardData)} priorityCount={2} />
       </div>
+      <DeliveryPanel {...settings} />
     </>
   )
 }

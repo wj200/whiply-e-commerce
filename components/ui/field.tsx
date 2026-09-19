@@ -1,11 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils/cn'
 
-/**
- * Every field has a real <label> and, when invalid, an error tied by
- * aria-describedby (§3.7). That is not polish — it is the difference between
- * a checkout a screen-reader user can complete and one they cannot.
- */
+/** Every field has a real label and, when invalid, an error tied by id. */
 export function Field({
   id,
   label,
@@ -23,23 +19,20 @@ export function Field({
   children: React.ReactNode
   className?: string
 }) {
-  const errorId = `${id}-error`
-  const hintId = `${id}-hint`
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={id} className="text-sm font-semibold text-ink">
+    <div className={cn('flex flex-col gap-2', className)}>
+      <label htmlFor={id} className="text-[0.8125rem] font-medium text-ink">
         {label}
-        {required ? <span className="text-accent"> *</span> : null}
-        {!required ? <span className="ml-1 font-normal text-faint">(optional)</span> : null}
+        {!required ? <span className="ml-1.5 font-normal text-faint">Optional</span> : null}
       </label>
       {hint ? (
-        <p id={hintId} className="text-xs text-muted">
+        <p id={`${id}-hint`} className="text-xs text-muted">
           {hint}
         </p>
       ) : null}
       {children}
       {error ? (
-        <p id={errorId} role="alert" className="text-xs font-medium text-danger">
+        <p id={`${id}-error`} role="alert" className="mono-sm text-[#9c3b2b]">
           {error}
         </p>
       ) : null}
@@ -47,11 +40,11 @@ export function Field({
   )
 }
 
+/** Square inputs with a hairline border and an ink focus line. */
 export const inputClasses =
-  'h-11 w-full rounded-[var(--radius-control)] border border-line bg-white px-3 text-[0.95rem] ' +
-  'text-ink placeholder:text-faint transition-colors focus:border-accent focus:outline-none ' +
-  'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent ' +
-  'aria-[invalid=true]:border-danger'
+  'h-12 w-full border border-line-strong bg-pure px-3.5 text-[0.9375rem] text-ink ' +
+  'placeholder:text-faint transition-colors focus:border-ink focus:outline-none ' +
+  'aria-[invalid=true]:border-[#9c3b2b]'
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, ...props }, ref) {
@@ -66,7 +59,7 @@ export const Textarea = React.forwardRef<
   return (
     <textarea
       ref={ref}
-      className={cn(inputClasses, 'h-auto min-h-24 resize-y py-2.5 leading-relaxed', className)}
+      className={cn(inputClasses, 'h-auto min-h-28 resize-y py-3 leading-relaxed', className)}
       {...props}
     />
   )

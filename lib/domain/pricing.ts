@@ -23,6 +23,7 @@ export type PriceableProduct = {
   sku: string
   name: string
   slug: string
+  shortDesc?: string | null
   priceCents: number
   imageUrl: string | null
   stockQty: number
@@ -47,6 +48,7 @@ export type PricedLine = {
   sku: string
   name: string
   slug: string
+  shortDesc: string | null
   imageUrl: string | null
   unitPriceCents: Cents
   quantity: number
@@ -62,6 +64,9 @@ export type PricedBasket = {
   freeDeliveryApplied: boolean
   /** How much more is needed to reach free delivery. Zero once reached. */
   amountToFreeDeliveryCents: Cents
+  /** The configured rule, so the UI can state it without hard-coding it. */
+  baseDeliveryFeeCents: Cents
+  freeDeliveryThresholdCents: Cents
   appliedCode: { id: string; code: string } | null
 }
 
@@ -80,6 +85,7 @@ export function computeTotals(input: {
       sku: product.sku,
       name: product.name,
       slug: product.slug,
+      shortDesc: product.shortDesc ?? null,
       imageUrl: product.imageUrl,
       unitPriceCents,
       quantity: qty,
@@ -121,6 +127,8 @@ export function computeTotals(input: {
     totalCents,
     freeDeliveryApplied,
     amountToFreeDeliveryCents,
+    baseDeliveryFeeCents: cents(settings.deliveryFeeCents),
+    freeDeliveryThresholdCents: threshold,
     appliedCode: input.code ? { id: input.code.id, code: input.code.code } : null,
   }
 }

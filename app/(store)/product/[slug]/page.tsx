@@ -6,9 +6,9 @@ import { getProductBySlug, listAllSlugs, CATEGORY_META } from '@/lib/domain/prod
 import { getPricingSettings } from '@/lib/domain/settings'
 import { productImageSrc } from '@/lib/media/product-image'
 import { formatSgd } from '@/lib/money'
-import { Badge } from '@/components/ui/badge'
 import { ProductActions } from '@/components/store/product-actions'
-import { DeliveryNote } from '@/components/store/delivery-note'
+import { UsageNote } from '@/components/store/usage-note'
+import { DeliveryPanel } from '@/components/store/delivery-panel'
 
 export async function generateStaticParams() {
   return (await listAllSlugs()).map((slug) => ({ slug }))
@@ -35,9 +35,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!product) notFound()
 
   const category = CATEGORY_META[product.category]
+  const isCharger = product.category === 'CREAM_CHARGERS'
 
-  // Structured data reads the SAME row the page renders — never a second
-  // hard-coded copy that can drift from what checkout will charge (§3.8).
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -62,22 +61,20 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="wrap py-6">
-        <nav aria-label="Breadcrumb" className="text-sm text-muted">
-          <Link href="/" className="hover:text-accent">
-            Home
+      <div className="wrap pt-8">
+        <nav aria-label="Breadcrumb" className="mono text-faint">
+          <Link href="/shop" className="transition-colors hover:text-ink">
+            Shop
           </Link>
-          <span className="px-2 text-faint">/</span>
-          <Link href={category.slug} className="hover:text-accent">
+          <span className="px-2">/</span>
+          <Link href={category.slug} className="transition-colors hover:text-ink">
             {category.title}
           </Link>
-          <span className="px-2 text-faint">/</span>
-          <span className="text-body">{product.name}</span>
         </nav>
       </div>
 
-      <div className="wrap grid gap-10 pb-16 lg:grid-cols-2 lg:gap-14">
-        <div className="relative aspect-4/5 overflow-hidden rounded-[var(--radius-card)] border border-line bg-shell">
+      <div className="wrap grid gap-12 py-10 lg:grid-cols-2 lg:gap-16 lg:py-14">
+        <div className="relative aspect-4/5 overflow-hidden bg-frame">
           <Image
             src={productImageSrc(product)}
             alt={product.imageAlt}
@@ -86,56 +83,55 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             className="object-cover"
             priority
           />
+          {product.cardLabel ? (
+            <p className="mono absolute left-6 top-6 text-ink/70">{product.cardLabel}</p>
+          ) : null}
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-faint">
-              {category.title}
-            </p>
-            <h1 className="mt-2 font-display text-3xl font-bold leading-tight tracking-tight text-ink md:text-4xl">
-              {product.name}
-            </h1>
-            <div className="mt-4 flex items-center gap-3">
-              <p className="text-3xl font-bold text-ink tnum">
-                {formatSgd(product.priceCents)}
-              </p>
-              {product.inStock ? (
-                <Badge tone="success">In stock</Badge>
-              ) : (
-                <Badge tone="danger">Out of stock</Badge>
-              )}
-            </div>
+        <div className="flex flex-col lg:py-4">
+          <p className="mono text-faint">{category.title}</p>
+
+          <h1 className="display-sm mt-5 text-[clamp(1.9rem,3.6vw,2.75rem)]">{product.name}</h1>
+
+          <p className="mt-4 text-[1rem] text-muted">{product.shortDesc}</p>
+
+          <p className="figure mt-7 text-[1.75rem] text-ink">
+            {formatSgd(product.priceCents, { alwaysCents: true })}
+          </p>
+
+          <p className="mono mt-3 text-faint">
+            {product.inStock ? 'In stock · ships from Singapore' : 'Out of stock'}
+          </p>
+
+          <div className="mt-9">
+            <ProductActions sku={product.sku} name={product.name} inStock={product.inStock} />
           </div>
 
-          <p className="text-[1.02rem] leading-relaxed text-body">{product.description}</p>
+          <p className="mt-8 text-[1rem] leading-relaxed text-body">{product.description}</p>
 
-          <ProductActions sku={product.sku} name={product.name} inStock={product.inStock} />
+          {isCharger ? (
+            <div className="mt-8 border-t border-line pt-7">
+              <UsageNote />
+            </div>
+          ) : null}
 
           {product.specs.length > 0 ? (
-            <div className="rounded-[var(--radius-card)] border border-line bg-shell">
-              <h2 className="border-b border-line px-5 py-3 text-xs font-bold uppercase tracking-widest text-muted">
-                Specifications
-              </h2>
-              <dl className="divide-y divide-line-soft">
+            <div className="mt-10 border-t border-line">
+              <p className="mono py-6 text-faint">Specifications</p>
+              <dl className="divide-y divide-line border-t border-line">
                 {product.specs.map((spec) => (
-                  <div key={spec.label} className="grid gap-1 px-5 py-3 sm:grid-cols-[10rem_1fr]">
-                    <dt className="text-sm font-semibold text-ink">{spec.label}</dt>
-                    <dd className="text-sm leading-relaxed text-body">{spec.value}</dd>
+                  <div key={spec.label} className="grid gap-2 py-5 sm:grid-cols-[11rem_1fr]">
+                    <dt className="mono text-faint">{spec.label}</dt>
+                    <dd className="text-[0.9375rem] leading-relaxed text-body">{spec.value}</dd>
                   </div>
                 ))}
               </dl>
             </div>
           ) : null}
-
-          <div className="rounded-[var(--radius-card)] border border-line px-5 py-4">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-muted">Delivery</h2>
-            <div className="mt-2">
-              <DeliveryNote {...settings} />
-            </div>
-          </div>
         </div>
       </div>
+
+      <DeliveryPanel {...settings} />
     </>
   )
 }
