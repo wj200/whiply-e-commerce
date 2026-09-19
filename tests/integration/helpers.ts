@@ -101,3 +101,39 @@ export async function seedLaunchCatalogue() {
     sortOrder: 40,
   })
 }
+
+type CodeOverrides = Partial<{
+  code: string
+  valueType: 'PERCENT' | 'FIXED'
+  percentOff: number | null
+  valueCents: number | null
+  limitType: 'TIME_LIMITED' | 'USE_LIMITED'
+  startsAt: Date | null
+  expiresAt: Date | null
+  maxUses: number | null
+  usesCount: number
+  attributionLabel: string | null
+  isActive: boolean
+}>
+
+export async function makeCode(overrides: CodeOverrides = {}) {
+  const limitType = overrides.limitType ?? 'TIME_LIMITED'
+  return db.discountCode.create({
+    data: {
+      code: overrides.code ?? 'WELCOME10',
+      valueType: overrides.valueType ?? 'PERCENT',
+      percentOff: overrides.valueType === 'FIXED' ? null : (overrides.percentOff ?? 10),
+      valueCents: overrides.valueType === 'FIXED' ? (overrides.valueCents ?? 1500) : null,
+      limitType,
+      startsAt: overrides.startsAt ?? null,
+      expiresAt:
+        limitType === 'TIME_LIMITED'
+          ? (overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 3600 * 1000))
+          : null,
+      maxUses: limitType === 'USE_LIMITED' ? (overrides.maxUses ?? 5) : null,
+      usesCount: overrides.usesCount ?? 0,
+      attributionLabel: overrides.attributionLabel ?? null,
+      isActive: overrides.isActive ?? true,
+    },
+  })
+}
