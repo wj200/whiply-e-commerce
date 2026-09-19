@@ -2,12 +2,12 @@ import { defineConfig } from 'vitest/config'
 import path from 'node:path'
 
 export default defineConfig({
-  resolve: { alias: { '@': path.resolve(__dirname, '.') } },
+  resolve: { alias: { '@': path.resolve(__dirname, '.'), 'server-only': path.resolve(__dirname, 'tests/stubs/server-only.ts') } },
   test: {
     fileParallelism: false,
     projects: [
       {
-        resolve: { alias: { '@': path.resolve(__dirname, '.') } },
+        resolve: { alias: { '@': path.resolve(__dirname, '.'), 'server-only': path.resolve(__dirname, 'tests/stubs/server-only.ts') } },
         test: {
           name: 'unit',
           include: ['tests/unit/**/*.test.ts'],
@@ -15,7 +15,7 @@ export default defineConfig({
         },
       },
       {
-        resolve: { alias: { '@': path.resolve(__dirname, '.') } },
+        resolve: { alias: { '@': path.resolve(__dirname, '.'), 'server-only': path.resolve(__dirname, 'tests/stubs/server-only.ts') } },
         test: {
           name: 'integration',
           include: ['tests/integration/**/*.test.ts'],

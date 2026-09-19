@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" width="1000" height="1250" role="img" aria-label="Industrial-grade professional stand mixer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#FDFBF8"/>
+      <stop offset="55%" stop-color="#F6EFE6"/>
+      <stop offset="100%" stop-color="#EBDFD1"/>
+    </linearGradient>
+    <radialGradient id="pool" cx="50%" cy="78%" r="62%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8E8175"/>
+      <stop offset="18%" stop-color="#E7DFD6"/>
+      <stop offset="46%" stop-color="#FBF8F4"/>
+      <stop offset="72%" stop-color="#D8CEC2"/>
+      <stop offset="100%" stop-color="#8A7D71"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="1250" fill="url(#bg)"/>
+  <ellipse cx="500" cy="960" rx="420" ry="230" fill="url(#pool)"/>
+  <ellipse cx="500" cy="946" rx="290" ry="34" fill="#C9BBAA" opacity="0.35"/>
+  <g>
+    <path d="M256 946 L256 812 Q256 776 292 776 L708 776 Q744 776 744 812 L744 946 Z" fill="#A8551F"/>
+    <path d="M256 946 L256 812 Q256 776 292 776 L708 776 Q744 776 744 812 L744 946 Z" fill="none" stroke="#7E3B14" stroke-width="3" opacity="0.6"/>
+    <rect x="286" y="810" width="30" height="104" rx="12" fill="#ffffff" opacity="0.22"/>
+    <path d="M300 776 L300 470 Q300 424 348 424 L400 424 L400 776 Z" fill="#A8551F"/>
+    <path d="M300 776 L300 470 Q300 424 348 424 L400 424 L400 776 Z" fill="none" stroke="#7E3B14" stroke-width="3" opacity="0.6"/>
+    <path d="M330 300 L724 300 Q772 300 772 348 L772 424 Q772 464 730 464 L360 464 Q330 464 330 432 Z" fill="#A8551F"/>
+    <path d="M330 300 L724 300 Q772 300 772 348 L772 424 Q772 464 730 464 L360 464 Q330 464 330 432 Z" fill="none" stroke="#7E3B14" stroke-width="3" opacity="0.6"/>
+    <rect x="356" y="326" width="330" height="26" rx="13" fill="#ffffff" opacity="0.2"/>
+    <rect x="700" y="470" width="52" height="72" rx="14" fill="#8A7D71"/>
+    <path d="M700 542 L752 542 L740 640 Q726 676 700 676 Q674 676 660 640 Z" fill="url(#steel)"/>
+    <path d="M700 542 L752 542 L740 640 Q726 676 700 676 Q674 676 660 640 Z" fill="none" stroke="#7E7266" stroke-width="2" opacity="0.5"/>
+    <path d="M556 690 Q556 856 726 856 Q896 856 896 690 Z" fill="none"/>
+    <path d="M572 676 L836 676 Q852 676 848 700 L818 856 Q812 886 782 886 L626 886 Q596 886 590 856 L560 700 Q556 676 572 676 Z" fill="url(#steel)"/>
+    <path d="M572 676 L836 676 Q852 676 848 700 L818 856 Q812 886 782 886 L626 886 Q596 886 590 856 L560 700 Q556 676 572 676 Z" fill="none" stroke="#7E7266" stroke-width="2.5" opacity="0.5"/>
+    <rect x="596" y="702" width="26" height="168" rx="13" fill="#ffffff" opacity="0.5"/>
+    <circle cx="336" cy="620" r="44" fill="#F4EDE3" stroke="#8A7D71" stroke-width="3"/>
+    <path d="M336 620 L336 588" stroke="#5A5048" stroke-width="7" stroke-linecap="round"/>
+  </g>
+</svg>

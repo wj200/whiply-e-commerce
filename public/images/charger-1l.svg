@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" width="1000" height="1250" role="img" aria-label="Food-grade N2O cream charger, 1 litre">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#FDFBF8"/>
+      <stop offset="55%" stop-color="#F6EFE6"/>
+      <stop offset="100%" stop-color="#EBDFD1"/>
+    </linearGradient>
+    <radialGradient id="pool" cx="50%" cy="78%" r="62%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8E8175"/>
+      <stop offset="18%" stop-color="#E7DFD6"/>
+      <stop offset="46%" stop-color="#FBF8F4"/>
+      <stop offset="72%" stop-color="#D8CEC2"/>
+      <stop offset="100%" stop-color="#8A7D71"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0E4D3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="1250" fill="url(#bg)"/>
+  <ellipse cx="500" cy="960" rx="420" ry="230" fill="url(#pool)"/>
+  <ellipse cx="500" cy="948" rx="196" ry="30" fill="#C9BBAA" opacity="0.38"/>
+  <g>
+    <rect x="392" y="392" width="216" height="548" rx="98" fill="url(#steel)"/>
+    <rect x="392" y="392" width="216" height="548" rx="98" fill="none" stroke="#7E7266" stroke-width="2.5" opacity="0.5"/>
+    <rect x="432" y="430" width="26" height="472" rx="13" fill="#ffffff" opacity="0.55"/>
+    <rect x="556" y="452" width="12" height="430" rx="6" fill="#6F6357" opacity="0.2"/>
+    <rect x="430" y="300" width="140" height="104" rx="26" fill="#B9AEA1"/>
+    <rect x="430" y="300" width="140" height="104" rx="26" fill="none" stroke="#7E7266" stroke-width="2.5" opacity="0.55"/>
+    <rect x="462" y="238" width="76" height="74" rx="16" fill="#9C8F81"/>
+    <rect x="476" y="196" width="48" height="56" rx="12" fill="#7E7266"/>
+    <g opacity="0.9">
+      <rect x="404" y="600" width="192" height="150" rx="14" fill="#A8551F"/>
+      <text x="500" y="655" font-family="Inter,Arial,sans-serif" font-size="46" font-weight="700" fill="#FDF6EE" text-anchor="middle" letter-spacing="3">N₂O</text>
+      <text x="500" y="700" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="600" fill="#F2DCC8" text-anchor="middle" letter-spacing="1.5">FOOD GRADE</text>
+      <text x="500" y="732" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="600" fill="#F2DCC8" text-anchor="middle" letter-spacing="1.5">1L · 640g</text>
+    </g>
+    <rect x="404" y="806" width="192" height="4" rx="2" fill="#6F6357" opacity="0.28"/>
+    <rect x="404" y="826" width="192" height="4" rx="2" fill="#6F6357" opacity="0.2"/>
+  </g>
+</svg>
