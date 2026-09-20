@@ -88,6 +88,20 @@ export function parseEnv(raw: NodeJS.ProcessEnv): Env {
     if (env.CRON_SECRET.includes('dev-only')) {
       issues.push('CRON_SECRET is still a development placeholder')
     }
+    // Turnstile is marked optional above because local development runs
+    // without it. In production its absence does NOT degrade gracefully:
+    // verifyTurnstile() returns false and EVERY bulk enquiry is rejected.
+    // A silently dead lead form is worse than a refused deploy.
+    if (!env.TURNSTILE_SECRET_KEY) {
+      issues.push(
+        'TURNSTILE_SECRET_KEY is required in production — without it every bulk ' +
+          'order enquiry is rejected',
+      )
+    }
+    if (!env.TURNSTILE_SITE_KEY) {
+      issues.push('TURNSTILE_SITE_KEY is required in production — the form cannot render its widget')
+    }
+
     // Cutover checklist §16.16 item 2, enforced by the deploy.
     if (env.HITPAY_API_BASE.includes('sandbox')) {
       issues.push('HITPAY_API_BASE still points at the sandbox in production')

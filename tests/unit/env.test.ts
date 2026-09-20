@@ -14,6 +14,8 @@ const VALID = {
   LALAMOVE_API_KEY: 'k',
   LALAMOVE_API_SECRET: 's',
   LALAMOVE_WEBHOOK_SECRET: 'w',
+  TURNSTILE_SITE_KEY: 'site',
+  TURNSTILE_SECRET_KEY: 'secret',
 } as unknown as NodeJS.ProcessEnv
 
 describe('parseEnv', () => {
@@ -61,6 +63,25 @@ describe('parseEnv', () => {
 
   it('rejects plain http in production', () => {
     expect(() => parseEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'http://whiply.sg' })).toThrow(/https/)
+  })
+
+  it('REFUSES TO START without Turnstile keys in production — a silently dead lead form is worse', () => {
+    const { TURNSTILE_SECRET_KEY: _s, ...noSecret } = VALID as Record<string, string>
+    expect(() => parseEnv(noSecret as NodeJS.ProcessEnv)).toThrow(/TURNSTILE_SECRET_KEY/)
+
+    const { TURNSTILE_SITE_KEY: _k, ...noSite } = VALID as Record<string, string>
+    expect(() => parseEnv(noSite as NodeJS.ProcessEnv)).toThrow(/TURNSTILE_SITE_KEY/)
+  })
+
+  it('does NOT require Turnstile in development', () => {
+    const { TURNSTILE_SECRET_KEY: _s, TURNSTILE_SITE_KEY: _k, ...rest } = VALID as Record<string, string>
+    expect(() =>
+      parseEnv({
+        ...rest,
+        NODE_ENV: 'development',
+        NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
+      } as NodeJS.ProcessEnv),
+    ).not.toThrow()
   })
 
   it('allows the sandbox and http in development', () => {
