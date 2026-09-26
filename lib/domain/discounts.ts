@@ -3,12 +3,23 @@ import type { PriceableCode } from './pricing'
 /**
  * Blueprint §5.4–5.6 — the discount engine.
  *
- * Simplified by instruction to exactly two VALUE types (percent, fixed) and
- * exactly two LIMIT types (time-limited, use-limited). There is deliberately
- * no minimum order, no maximum cap, no per-customer limit and no product or
- * category restriction — not in the validator, and not in the schema, which
- * is what keeps this to an ordered list of honest checks instead of a rules
- * engine (§17.4 records what adding one back would take).
+ * Two VALUE types (percent, fixed) and three LIMIT types:
+ *
+ *   TIME_LIMITED  runs until a date        ("expires in one week")
+ *   USE_LIMITED   runs until N redemptions ("expires in 5 uses")
+ *   SEASONAL      runs BETWEEN two dates   ("Christmas 2026")
+ *
+ * SEASONAL is the campaign shape, and the only one with a start that matters:
+ * it is not live before the season opens and it stops on its own when the
+ * season closes, with no one having to remember to switch it off. The window
+ * is enforced twice — the database CHECK refuses a seasonal row missing
+ * either end, and the validator below refuses to apply one outside it.
+ *
+ * There is deliberately no minimum order, no maximum cap, no per-customer
+ * limit and no product or category restriction — not in the validator, and
+ * not in the schema, which is what keeps this to an ordered list of honest
+ * checks instead of a rules engine (§17.4 records what adding one back
+ * would take).
  */
 
 export type DiscountCodeRow = {
@@ -17,14 +28,17 @@ export type DiscountCodeRow = {
   valueType: 'PERCENT' | 'FIXED'
   percentOff: number | null
   valueCents: number | null
-  limitType: 'TIME_LIMITED' | 'USE_LIMITED'
+  limitType: DiscountLimitTypeName
   startsAt: Date | null
   expiresAt: Date | null
   maxUses: number | null
   usesCount: number
   attributionLabel: string | null
+  seasonLabel: string | null
   isActive: boolean
 }
+
+export type DiscountLimitTypeName = 'TIME_LIMITED' | 'USE_LIMITED' | 'SEASONAL'
 
 export type DiscountRejection =
   | 'NOT_FOUND'
@@ -32,6 +46,7 @@ export type DiscountRejection =
   | 'NOT_STARTED'
   | 'EXPIRED'
   | 'FULLY_REDEEMED'
+  | 'SEASON_ENDED'
   | 'NO_EFFECT'
 
 export type DiscountValidation =
@@ -68,9 +83,16 @@ export function validateDiscountCode(
     return { ok: false, reason: 'INACTIVE', message: 'That code is no longer active.' }
   }
 
-  // 3. Started
+  // 3. Started. A seasonal code names its season in the refusal, because
+  //    "Christmas 2026 starts on 1 Dec" is a far better answer than "not yet".
   if (row.startsAt && row.startsAt > opts.now) {
-    return { ok: false, reason: 'NOT_STARTED', message: "That code isn't active yet." }
+    return {
+      ok: false,
+      reason: 'NOT_STARTED',
+      message: row.seasonLabel
+        ? `${row.seasonLabel} starts on ${formatDate(row.startsAt)}.`
+        : `That code isn't active until ${formatDate(row.startsAt)}.`,
+    }
   }
 
   // 4. Time-limited codes expire on a date.
@@ -97,7 +119,20 @@ export function validateDiscountCode(
     }
   }
 
-  // 6. It must actually do something.
+  // 6. Seasonal codes close with their season.
+  if (row.limitType === 'SEASONAL') {
+    if (!row.expiresAt || row.expiresAt <= opts.now) {
+      return {
+        ok: false,
+        reason: 'SEASON_ENDED',
+        message: row.seasonLabel
+          ? `${row.seasonLabel} ended${row.expiresAt ? ` on ${formatDate(row.expiresAt)}` : ''}.`
+          : 'That seasonal code has ended.',
+      }
+    }
+  }
+
+  // 7. It must actually do something.
   const code: PriceableCode = {
     id: row.id,
     code: row.code,
@@ -134,11 +169,32 @@ export function describeCode(row: DiscountCodeRow): string {
     row.valueType === 'PERCENT'
       ? `${row.percentOff}% off`
       : `S$${((row.valueCents ?? 0) / 100).toFixed(2)} off`
-  const limit =
-    row.limitType === 'TIME_LIMITED'
-      ? row.expiresAt
-        ? `expires ${formatDate(row.expiresAt)}`
-        : 'expires (unset)'
-      : `${row.usesCount}/${row.maxUses ?? 0} uses`
-  return `${value} · ${limit}`
+  return `${value} · ${describeLimit(row)}`
+}
+
+export function describeLimit(row: DiscountCodeRow): string {
+  if (row.limitType === 'TIME_LIMITED') {
+    return row.expiresAt ? `expires ${formatDate(row.expiresAt)}` : 'expires (unset)'
+  }
+  if (row.limitType === 'USE_LIMITED') {
+    return `${row.usesCount}/${row.maxUses ?? 0} uses`
+  }
+  const season = row.seasonLabel ?? 'Seasonal'
+  const from = row.startsAt ? formatDate(row.startsAt) : '(unset)'
+  const to = row.expiresAt ? formatDate(row.expiresAt) : '(unset)'
+  return `${season} · ${from} – ${to}`
+}
+
+/**
+ * Where a seasonal code sits relative to its window, for the admin list. A
+ * campaign that has not opened yet is not "broken", and the console should
+ * not colour it as though it were.
+ */
+export type SeasonPhase = 'UPCOMING' | 'RUNNING' | 'ENDED' | 'NOT_SEASONAL'
+
+export function seasonPhase(row: DiscountCodeRow, now: Date): SeasonPhase {
+  if (row.limitType !== 'SEASONAL') return 'NOT_SEASONAL'
+  if (row.startsAt && row.startsAt > now) return 'UPCOMING'
+  if (row.expiresAt && row.expiresAt <= now) return 'ENDED'
+  return 'RUNNING'
 }

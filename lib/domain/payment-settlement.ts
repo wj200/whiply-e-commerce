@@ -62,7 +62,7 @@ function isUniqueViolation(error: unknown): boolean {
 export async function settlePaidPayment(input: {
   reference: string
   paidAmountCents: number
-  hitpayPaymentId: string | null
+  providerPaymentId: string | null
   method: string | null
   actor: string
 }): Promise<SettlementOutcome> {
@@ -119,7 +119,7 @@ export async function settlePaidPayment(input: {
       data: {
         paymentStatus: 'PAID',
         paidAt: new Date(),
-        paymentId: input.hitpayPaymentId,
+        paymentId: input.providerPaymentId,
         method: input.method,
       },
     })

@@ -4,6 +4,7 @@ import { getPricingSettings } from './settings'
 import { computeTotals, type PricedBasket, type PriceableProduct } from './pricing'
 import { validateDiscountCode, normaliseCode, type DiscountValidation } from './discounts'
 import type { CartLine } from '@/lib/cart/types'
+import type { DeliveryMethodName } from './delivery-slots'
 
 /**
  * Blueprint §5.1 / GUARD-1 — the server re-prices EVERY basket from the
@@ -27,6 +28,7 @@ export type PricedBasketResult = {
 export async function priceBasket(input: {
   lines: CartLine[]
   codeInput?: string | null
+  deliveryMethod?: DeliveryMethodName
   now?: Date
 }): Promise<PricedBasketResult> {
   const now = input.now ?? new Date()
@@ -101,7 +103,12 @@ export async function priceBasket(input: {
   }
 
   // Price once WITHOUT the code to get the subtotal the code is judged against.
-  const withoutCode = computeTotals({ lines: priceableLines, code: null, settings })
+  const withoutCode = computeTotals({
+    lines: priceableLines,
+    code: null,
+    settings,
+    deliveryMethod: input.deliveryMethod,
+  })
 
   let validation: DiscountValidation | null = null
   if (input.codeInput && input.codeInput.trim()) {
@@ -114,6 +121,7 @@ export async function priceBasket(input: {
     lines: priceableLines,
     code: validation?.ok ? validation.code : null,
     settings,
+    deliveryMethod: input.deliveryMethod,
   })
 
   return {

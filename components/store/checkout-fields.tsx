@@ -5,19 +5,16 @@ import { Field, Input, Textarea } from '@/components/ui/field'
 export type FieldErrors = Partial<Record<string, string>>
 
 /**
- * The §6.1 field set, shared by the bag drawer and the /checkout page so
- * there is one definition of what checkout asks for.
+ * The §6.1 field set: email, mobile, address line 1, unit number, postal
+ * code and particulars — plus an optional name, because a driver at a lobby
+ * desk needs someone to ask for.
  *
- * There is NO self-collection field, no delivery-method selector and no
- * pickup option. It is not hidden — it does not exist.
+ * There is NO self-collection field and no pickup option. It is not hidden —
+ * it does not exist, here or in the schema behind it.
  */
 export function CheckoutFields({ errors }: { errors: FieldErrors }) {
   return (
     <div className="grid gap-5 sm:grid-cols-2">
-      <Field id="name" label="Full name" required error={errors.name} className="sm:col-span-2">
-        <Input id="name" name="name" autoComplete="name" required aria-invalid={!!errors.name} />
-      </Field>
-
       <Field id="email" label="Email" required error={errors.email}>
         <Input
           id="email"
@@ -44,8 +41,18 @@ export function CheckoutFields({ errors }: { errors: FieldErrors }) {
       </Field>
 
       <Field
+        id="name"
+        label="Name for the delivery"
+        error={errors.name}
+        hint="Optional — who should the driver ask for?"
+        className="sm:col-span-2"
+      >
+        <Input id="name" name="name" autoComplete="name" aria-invalid={!!errors.name} />
+      </Field>
+
+      <Field
         id="addressLine1"
-        label="Delivery address"
+        label="Address line 1"
         required
         error={errors.addressLine1}
         className="sm:col-span-2"
@@ -59,8 +66,13 @@ export function CheckoutFields({ errors }: { errors: FieldErrors }) {
         />
       </Field>
 
-      <Field id="addressLine2" label="Unit / floor" error={errors.addressLine2}>
-        <Input id="addressLine2" name="addressLine2" autoComplete="address-line2" placeholder="#04-05" />
+      <Field id="addressLine2" label="Apartment / unit no." error={errors.addressLine2}>
+        <Input
+          id="addressLine2"
+          name="addressLine2"
+          autoComplete="address-line2"
+          placeholder="#04-05"
+        />
       </Field>
 
       <Field id="postalCode" label="Postal code" required error={errors.postalCode}>
@@ -78,7 +90,8 @@ export function CheckoutFields({ errors }: { errors: FieldErrors }) {
 
       <Field
         id="instructions"
-        label="Delivery instructions"
+        label="Particulars"
+        hint="Gate codes, lift lobby, who to call — anything the driver should know."
         error={errors.instructions}
         className="sm:col-span-2"
       >

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" width="1000" height="1250" role="img" aria-label="Whipping cream">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#F4F1EA"/>
+      <stop offset="55%" stop-color="#EAE5DA"/>
+      <stop offset="100%" stop-color="#DED7C8"/>
+    </linearGradient>
+    <radialGradient id="pool" cx="50%" cy="78%" r="62%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="carton" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#D8D1C4"/>
+      <stop offset="22%" stop-color="#FBF8F4"/>
+      <stop offset="60%" stop-color="#F3EEE5"/>
+      <stop offset="100%" stop-color="#C9C1B2"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0E4D3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="1250" fill="url(#bg)"/>
+  <ellipse cx="500" cy="960" rx="420" ry="230" fill="url(#pool)"/>
+  <ellipse cx="500" cy="948" rx="196" ry="30" fill="#CFCBBE" opacity="0.38"/>
+  <g>
+    <path d="M370 430 L500 366 L630 430 L630 938 L370 938 Z" fill="url(#carton)"/>
+    <path d="M370 430 L500 366 L630 430 L500 494 Z" fill="#E4DCCF"/>
+    <path d="M370 430 L500 494 L500 938 L370 938 Z" fill="#000" opacity="0.05"/>
+    <path d="M370 430 L500 366 L630 430 L630 938 L370 938 Z" fill="none" stroke="#8A7D71" stroke-width="2.5" opacity="0.45"/>
+    <rect x="418" y="592" width="164" height="150" fill="#17181A" opacity="0.88"/>
+    <path d="M452 700 c0-26 14-44 34-44 6-24 26-38 48-32 18 5 28 20 28 38 0 22-18 38-40 38z" fill="url(#cream)"/>
+    <rect x="418" y="778" width="112" height="9" fill="#17181A" opacity="0.32"/>
+    <rect x="418" y="802" width="72" height="9" fill="#17181A" opacity="0.2"/>
+  </g>
+</svg>

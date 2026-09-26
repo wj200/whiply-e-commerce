@@ -3,7 +3,7 @@ import { Chip } from '@/components/ui/chip'
 export function CategoryChips({
   active,
 }: {
-  active: 'all' | 'equipment' | 'chargers'
+  active: 'all' | 'equipment' | 'chargers' | 'cream'
 }) {
   return (
     <div className="flex flex-wrap gap-2.5">
@@ -15,6 +15,9 @@ export function CategoryChips({
       </Chip>
       <Chip href="/cream-chargers" active={active === 'chargers'}>
         Cream chargers
+      </Chip>
+      <Chip href="/cream-products" active={active === 'cream'}>
+        Cream
       </Chip>
     </div>
   )

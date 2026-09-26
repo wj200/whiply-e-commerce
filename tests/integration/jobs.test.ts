@@ -1,52 +1,55 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
-import { db, resetDatabase, seedSettings, seedLaunchCatalogue } from './helpers'
+import {
+  db,
+  resetDatabase,
+  seedSettings,
+  seedLaunchCatalogue,
+  aValidSlot,
+} from './helpers'
 
-const hitpayCalls: string[] = []
+const stripeCalls: string[] = []
 
-vi.mock('@/lib/payments/hitpay', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/payments/hitpay')>()
+// A S$40 tank plus S$10 standard delivery — what `pendingOrder` below costs.
+const ORDER_TOTAL = 5000
+
+vi.mock('@/lib/payments/stripe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/payments/stripe')>()
   return {
     ...actual,
-    getPaymentRequest: vi.fn(async (requestId: string) => {
-      hitpayCalls.push(`getPaymentRequest:${requestId}`)
+    getPaymentIntent: vi.fn(async (id: string) => {
+      stripeCalls.push(`getPaymentIntent:${id}`)
       return {
-        requestId,
-        status: 'completed',
-        paidAmountCents: 5500,
-        paymentId: 'pay_reconciled',
-        method: 'paynow_online',
+        id,
+        status: 'succeeded',
+        amountCents: ORDER_TOTAL,
+        amountReceivedCents: ORDER_TOTAL,
+        chargeId: 'ch_reconciled',
+        reference: null,
       }
     }),
-    refundPayment: vi.fn(async () => {
-      hitpayCalls.push('refundPayment')
-      return { refundId: 'refund_1' }
+    refundPaymentIntent: vi.fn(async () => {
+      stripeCalls.push('refundPaymentIntent')
+      return { refundId: 'refund_1', status: 'pending' }
     }),
   }
 })
 
-vi.mock('@/lib/delivery/lalamove', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/delivery/lalamove')>()
-  return {
-    ...actual,
-    requestQuotation: vi.fn(async () => ({
-      quotationId: 'q',
-      priceCents: 1000,
-      expiresAt: null,
-    })),
-    placeOrder: vi.fn(async () => ({
-      providerRef: 'LLM-9',
-      priceCents: 1000,
-      shareLink: null,
-      status: 'ASSIGNING_DRIVER',
-    })),
-  }
-})
+// The notification adapters reach the network. Every test here is about the
+// JOB, so they are stubbed to succeed; their own behaviour is tested in
+// notifications.test.ts.
+vi.mock('@/lib/notify/receipt-email', () => ({
+  sendReceiptEmail: vi.fn(async () => ({ sent: true, providerId: 'em_1' })),
+}))
+vi.mock('@/lib/notify/whatsapp', () => ({
+  sendBusinessOrderAlert: vi.fn(async () => ({ sent: true, messageId: 'wam_1' })),
+}))
 
 async function pendingOrder(opts: { createdAt?: Date } = {}) {
   const { createPendingOrder } = await import('@/lib/domain/orders')
   const { order } = await createPendingOrder({
-    lines: [{ sku: 'WHP-N2O-640', qty: 1 }],
+    lines: [{ sku: 'WHP-N2O-640-1', qty: 1 }],
     codeInput: null,
+    delivery: aValidSlot(),
     contact: {
       name: 'Jane Baker',
       email: 'jane@example.com',
@@ -59,8 +62,8 @@ async function pendingOrder(opts: { createdAt?: Date } = {}) {
   await db.payment.create({
     data: {
       orderId: order.id,
-      provider: 'hitpay',
-      requestId: `req_${order.reference}`,
+      provider: 'stripe',
+      requestId: `pi_${order.reference}`,
       amountCents: order.totalCents,
       paymentStatus: 'PENDING',
     },
@@ -80,7 +83,7 @@ describe('payment reconciliation (C5)', () => {
     await seedLaunchCatalogue()
     const { invalidateSettings } = await import('@/lib/domain/settings')
     invalidateSettings()
-    hitpayCalls.length = 0
+    stripeCalls.length = 0
   })
 
   afterAll(async () => {
@@ -99,16 +102,19 @@ describe('payment reconciliation (C5)', () => {
       where: { id: order.id },
       include: { payment: true, events: true },
     })
-    // Reconciliation settles AND enqueues dispatch, exactly as the webhook
-    // does — so with the gate off (the default) the order lands in
-    // READY_FOR_DELIVERY rather than sitting at PAID.
-    expect(row.orderStatus).toBe('READY_FOR_DELIVERY')
+    // Reconciliation runs the SAME after-payment pipeline the webhook does,
+    // so the order ends up scheduled against the slot it booked rather than
+    // sitting at PAID waiting for someone to notice.
+    expect(row.orderStatus).toBe('DELIVERY_BOOKED')
     expect(row.paidAt).not.toBeNull()
     expect(row.payment?.paymentStatus).toBe('PAID')
-    expect(row.payment?.paymentId).toBe('pay_reconciled')
+    expect(row.payment?.paymentId).toBe('ch_reconciled')
+    // And the customer got their receipt, and the shop got its alert.
+    expect(row.payment?.receiptSentAt).not.toBeNull()
+    expect(row.payment?.notifiedAt).not.toBeNull()
 
     // Stock was deducted exactly once, by the same code path as the webhook.
-    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } })
+    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } })
     expect(product.stockQty).toBe(119)
     expect(row.events.filter((e) => e.type === 'PAID')).toHaveLength(1)
   })
@@ -118,7 +124,7 @@ describe('payment reconciliation (C5)', () => {
     const { reconcilePayments } = await import('@/lib/jobs/reconcile-payments')
     const result = await reconcilePayments()
     expect(result.checked).toBe(0)
-    expect(hitpayCalls).toEqual([])
+    expect(stripeCalls).toEqual([])
   })
 
   it('does not re-settle an order the webhook already handled', async () => {
@@ -127,7 +133,7 @@ describe('payment reconciliation (C5)', () => {
     await settlePaidPayment({
       reference: order.reference,
       paidAmountCents: order.totalCents,
-      hitpayPaymentId: 'pay_webhook',
+      providerPaymentId: 'pay_webhook',
       method: 'card',
       actor: 'webhook',
     })
@@ -136,7 +142,7 @@ describe('payment reconciliation (C5)', () => {
     const result = await reconcilePayments()
 
     expect(result.checked).toBe(0)
-    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } })
+    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } })
     expect(product.stockQty).toBe(119)
   })
 })
@@ -152,7 +158,7 @@ describe('order expiry (C5)', () => {
 
   it('cancels a stale unpaid order and releases NOTHING, because it held nothing', async () => {
     const order = await pendingOrder({ createdAt: new Date(Date.now() - 3 * 3600_000) })
-    const stockBefore = (await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } }))
+    const stockBefore = (await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } }))
       .stockQty
 
     const { expireStaleOrders } = await import('@/lib/jobs/expire-orders')
@@ -165,7 +171,7 @@ describe('order expiry (C5)', () => {
     expect(row.orderStatus).toBe('CANCELLED')
     expect(row.payment?.paymentStatus).toBe('EXPIRED')
 
-    const stockAfter = (await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } }))
+    const stockAfter = (await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } }))
       .stockQty
     expect(stockAfter).toBe(stockBefore)
   })
@@ -176,7 +182,7 @@ describe('order expiry (C5)', () => {
     await settlePaidPayment({
       reference: order.reference,
       paidAmountCents: order.totalCents,
-      hitpayPaymentId: 'p',
+      providerPaymentId: 'p',
       method: 'card',
       actor: 'test',
     })
@@ -201,7 +207,7 @@ describe('refunds and cancellation (C6)', () => {
     await seedLaunchCatalogue()
     const { invalidateSettings } = await import('@/lib/domain/settings')
     invalidateSettings()
-    hitpayCalls.length = 0
+    stripeCalls.length = 0
   })
 
   async function paidOrder() {
@@ -210,7 +216,7 @@ describe('refunds and cancellation (C6)', () => {
     await settlePaidPayment({
       reference: order.reference,
       paidAmountCents: order.totalCents,
-      hitpayPaymentId: 'pay_1',
+      providerPaymentId: 'pay_1',
       method: 'card',
       actor: 'test',
     })
@@ -229,7 +235,7 @@ describe('refunds and cancellation (C6)', () => {
     })
 
     expect(result).toMatchObject({ ok: true, refundId: 'refund_1' })
-    expect(hitpayCalls).toContain('refundPayment')
+    expect(stripeCalls).toContain('refundPaymentIntent')
 
     const row = await db.order.findUniqueOrThrow({
       where: { id: order.id },
@@ -244,7 +250,7 @@ describe('refunds and cancellation (C6)', () => {
     expect(restored).toBeDefined()
     expect((restored!.detail as { reason: string }).reason).toBe('Customer changed their mind')
 
-    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } })
+    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } })
     expect(product.stockQty).toBe(120)
   })
 
@@ -259,7 +265,7 @@ describe('refunds and cancellation (C6)', () => {
       reason: 'Delivered but damaged',
     })
 
-    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } })
+    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } })
     expect(product.stockQty).toBe(119)
   })
 
@@ -273,7 +279,7 @@ describe('refunds and cancellation (C6)', () => {
       reason: 'x',
     })
     expect(result).toMatchObject({ ok: false })
-    expect(hitpayCalls).not.toContain('refundPayment')
+    expect(stripeCalls).not.toContain('refundPaymentIntent')
   })
 
   it('cancelling a paid order restores stock', async () => {
@@ -285,18 +291,27 @@ describe('refunds and cancellation (C6)', () => {
       reason: 'Out of stock at the warehouse',
     })
     expect(result.ok).toBe(true)
-    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640' } })
+    const product = await db.product.findUniqueOrThrow({ where: { sku: 'WHP-N2O-640-1' } })
     expect(product.stockQty).toBe(120)
   })
 
-  it('REFUSES to cancel an order whose courier is already booked', async () => {
+  it('REFUSES to cancel an order that has already left', async () => {
     const order = await paidOrder()
-    await db.delivery.create({
-      data: { orderId: order.id, providerRef: 'LLM-1', deliveryStatus: 'DRIVER_ASSIGNED' },
+    await db.delivery.upsert({
+      where: { orderId: order.id },
+      create: { orderId: order.id, deliveryStatus: 'OUT_FOR_DELIVERY' },
+      update: { deliveryStatus: 'OUT_FOR_DELIVERY' },
     })
     const { cancelOrder } = await import('@/lib/domain/refunds')
     const result = await cancelOrder({ orderId: order.id, actor: 'admin', reason: 'x' })
     expect(result.ok).toBe(false)
-    expect(result.reason).toMatch(/courier/i)
+    expect(result.reason).toMatch(/already left/i)
+  })
+
+  it('ALLOWS cancelling one that is only scheduled', async () => {
+    const order = await paidOrder()
+    const { cancelOrder } = await import('@/lib/domain/refunds')
+    const result = await cancelOrder({ orderId: order.id, actor: 'admin', reason: 'Out of stock' })
+    expect(result.ok).toBe(true)
   })
 })

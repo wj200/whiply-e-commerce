@@ -22,7 +22,9 @@ export type PricedCartDto = {
   totalCents: number
   freeDeliveryApplied: boolean
   amountToFreeDeliveryCents: number
-  baseDeliveryFeeCents: number
+  deliveryMethod: 'STANDARD' | 'EXPRESS'
+  standardDeliveryFeeCents: number
+  expressDeliveryFeeCents: number
   freeDeliveryThresholdCents: number
   appliedCode: { id: string; code: string } | null
   issues: { sku: string; kind: string; message: string; availableQty?: number }[]
@@ -34,7 +36,10 @@ export type PricedCartDto = {
  * open overnight shows this morning's prices (§5.1), and a line that went out
  * of stock is corrected here rather than at payment.
  */
-export function usePricedCart(code: string | null) {
+export function usePricedCart(
+  code: string | null,
+  deliveryMethod: 'STANDARD' | 'EXPRESS' = 'STANDARD',
+) {
   const { cart, hydrated, remove, setQty } = useCart()
   const [data, setData] = React.useState<PricedCartDto | null>(null)
   const [loading, setLoading] = React.useState(true)
@@ -61,7 +66,7 @@ export function usePricedCart(code: string | null) {
     fetch('/api/cart/price', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lines, code }),
+      body: JSON.stringify({ lines, code, deliveryMethod }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`price failed: ${res.status}`)
@@ -92,7 +97,7 @@ export function usePricedCart(code: string | null) {
     // `remove`/`setQty` are stable enough for this effect; including them would
     // re-fire the request on every cart mutation they cause.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(lines), code, hydrated])
+  }, [JSON.stringify(lines), code, deliveryMethod, hydrated])
 
   return { data, loading, error, isEmpty: hydrated && lines.length === 0, hydrated }
 }

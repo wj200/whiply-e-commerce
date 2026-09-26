@@ -16,7 +16,16 @@ datasource db {
 
 enum ProductCategory {
   CREAM_CHARGERS
+  CREAM_PRODUCTS
   BAKING_EQUIPMENT
+}
+
+/// Two customer-facing delivery speeds (§07). There is no courier API:
+/// fulfilment is self-managed, so a "delivery" is a slot the customer booked
+/// and a status an operator advances.
+enum DeliveryMethod {
+  STANDARD
+  EXPRESS
 }
 
 enum OrderStatus {
@@ -41,19 +50,13 @@ enum PaymentStatus {
 }
 
 enum DeliveryStatus {
-  NOT_BOOKED
-  BOOKING
-  DRIVER_ASSIGNED
-  PICKED_UP
-  IN_TRANSIT
+  NOT_SCHEDULED
+  SCHEDULED
+  PREPARING
+  OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
   FAILED
-}
-
-enum DeliveryProvider {
-  LALAMOVE
-  MANUAL
 }
 
 enum DiscountValueType {
@@ -61,10 +64,13 @@ enum DiscountValueType {
   FIXED
 }
 
-// Simplified by instruction: a code is limited by TIME or by USES. Nothing else.
+/// A code is limited by TIME, by USES, or by a SEASONAL window.
+/// SEASONAL is a campaign with both a start and an end — it is not live
+/// before the season opens and stops on its own when the season closes.
 enum DiscountLimitType {
   TIME_LIMITED
   USE_LIMITED
+  SEASONAL
 }
 
 enum EnquiryStatus {
@@ -80,24 +86,27 @@ enum AdminRole {
 }
 
 model Product {
-  id          String          @id @default(uuid()) @db.Uuid
-  sku         String          @unique
-  slug        String          @unique
-  name        String
-  category    ProductCategory
-  shortDesc   String          @map("short_desc")
-  cardLabel   String?         @map("card_label")
-  description String
-  specs       Json            @default("[]")
-  priceCents  Int             @map("price_cents")
-  imageUrl    String?         @map("image_url")
-  imageAlt    String?         @map("image_alt")
-  stockQty    Int             @map("stock_qty")
-  lowStockAt  Int             @default(10) @map("low_stock_at")
-  isActive    Boolean         @default(true) @map("is_active")
-  sortOrder   Int             @default(0) @map("sort_order")
-  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id           String          @id @default(uuid()) @db.Uuid
+  sku          String          @unique
+  slug         String          @unique
+  name         String
+  category     ProductCategory
+  shortDesc    String          @map("short_desc")
+  cardLabel    String?         @map("card_label")
+  description  String
+  specs        Json            @default("[]")
+  /// How many physical units one purchase of this SKU represents (a 6-tank
+  /// pack is unitsPerPack = 6). Stock is counted in PACKS, not units.
+  unitsPerPack Int             @default(1) @map("units_per_pack")
+  priceCents   Int             @map("price_cents")
+  imageUrl     String?         @map("image_url")
+  imageAlt     String?         @map("image_alt")
+  stockQty     Int             @map("stock_qty")
+  lowStockAt   Int             @default(10) @map("low_stock_at")
+  isActive     Boolean         @default(true) @map("is_active")
+  sortOrder    Int             @default(0) @map("sort_order")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   orderItems OrderItem[]
 
@@ -113,6 +122,11 @@ model Order {
   discountCents    Int         @default(0) @map("discount_cents")
   deliveryFeeCents Int         @map("delivery_fee_cents")
   totalCents       Int         @map("total_cents")
+
+  /// Chosen speed and the slot the customer booked (§07).
+  deliveryMethod    DeliveryMethod @default(STANDARD) @map("delivery_method")
+  deliverySlotStart DateTime?      @map("delivery_slot_start") @db.Timestamptz(6)
+  deliverySlotEnd   DateTime?      @map("delivery_slot_end") @db.Timestamptz(6)
 
   // No customer entity by design (§9.9). Contact and address are snapshots.
   contactName  String  @map("contact_name")
@@ -171,14 +185,22 @@ model Payment {
   id            String        @id @default(uuid()) @db.Uuid
   orderId       String        @unique @map("order_id") @db.Uuid
   order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider      String        @default("hitpay")
+  provider      String        @default("stripe")
+  /// Stripe PaymentIntent id (pi_...). One per order.
   requestId     String        @unique @map("request_id")
+  /// Stripe Charge id (ch_...), known only once the PaymentIntent succeeds.
   paymentId     String?       @unique @map("payment_id")
   amountCents   Int           @map("amount_cents")
   currency      String        @default("SGD") @db.Char(3)
   paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
   method        String?
+  /// Stripe-hosted next-action URL (the PayNow QR page).
   checkoutUrl   String?       @map("checkout_url")
+  /// Set once the customer receipt has been emailed, so a replayed webhook
+  /// cannot send a second invoice.
+  receiptSentAt DateTime?     @map("receipt_sent_at") @db.Timestamptz(6)
+  /// Set once the business WhatsApp notification has been delivered.
+  notifiedAt    DateTime?     @map("notified_at") @db.Timestamptz(6)
   refundedCents Int           @default(0) @map("refunded_cents")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -188,25 +210,25 @@ model Payment {
   @@map("payments")
 }
 
+/// Self-managed fulfilment. No courier API: the operator dispatches and
+/// advances the status by hand, optionally recording who carried it and
+/// what it cost as an internal figure.
 model Delivery {
-  id                 String           @id @default(uuid()) @db.Uuid
-  orderId            String           @unique @map("order_id") @db.Uuid
-  order              Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider           DeliveryProvider @default(LALAMOVE)
-  providerRef        String?          @map("provider_ref")
-  quotationId        String?          @map("quotation_id")
-  estimatedCostCents Int?             @map("estimated_cost_cents")
-  actualCostCents    Int?             @map("actual_cost_cents")
-  deliveryStatus     DeliveryStatus   @default(NOT_BOOKED) @map("delivery_status")
-  driver             Json?
-  trackingUrl        String?          @map("tracking_url")
-  failureReason      String?          @map("failure_reason")
-  attempts           Int              @default(0)
-  nextAttemptAt      DateTime?        @map("next_attempt_at") @db.Timestamptz(6)
-  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  bookedAt           DateTime?        @map("booked_at") @db.Timestamptz(6)
-  deliveredAt        DateTime?        @map("delivered_at") @db.Timestamptz(6)
+  id              String         @id @default(uuid()) @db.Uuid
+  orderId         String         @unique @map("order_id") @db.Uuid
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliveryStatus  DeliveryStatus @default(NOT_SCHEDULED) @map("delivery_status")
+  /// Free text: courier name, plate, own-van driver, anything useful.
+  courierRef      String?        @map("courier_ref")
+  /// Internal cost, never shown to the customer and never substituted into
+  /// what they were charged (§7.5).
+  actualCostCents Int?           @map("actual_cost_cents")
+  notes           String?
+  failureReason   String?        @map("failure_reason")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  dispatchedAt    DateTime?      @map("dispatched_at") @db.Timestamptz(6)
+  deliveredAt     DateTime?      @map("delivered_at") @db.Timestamptz(6)
 
   @@index([deliveryStatus])
   @@map("deliveries")
@@ -224,6 +246,8 @@ model DiscountCode {
   maxUses          Int?              @map("max_uses")
   usesCount        Int               @default(0) @map("uses_count")
   attributionLabel String?           @map("attribution_label")
+  /// Human name for a seasonal campaign, e.g. "Christmas 2026".
+  seasonLabel      String?           @map("season_label")
   isActive         Boolean           @default(true) @map("is_active")
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)

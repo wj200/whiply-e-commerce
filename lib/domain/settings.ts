@@ -7,7 +7,10 @@ import {
   type SettingKey,
   type SettingValue,
   type SettingsMap,
+  slotRulesFrom,
 } from './settings-schema'
+import type { PricingSettings } from './pricing'
+import type { SlotRules } from './delivery-slots'
 
 /**
  * Cached accessor over the settings table (§2.4).
@@ -68,14 +71,17 @@ export async function setSetting<K extends SettingKey>(
   return parsed
 }
 
-/** Pricing only ever needs these two. Kept narrow on purpose. */
-export async function getPricingSettings(): Promise<{
-  deliveryFeeCents: number
-  freeDeliveryThresholdCents: number
-}> {
+/** Pricing only ever needs these three. Kept narrow on purpose. */
+export async function getPricingSettings(): Promise<PricingSettings> {
   const all = await getAllSettings()
   return {
-    deliveryFeeCents: all.delivery_fee_cents,
+    standardDeliveryFeeCents: all.standard_delivery_fee_cents,
+    expressDeliveryFeeCents: all.express_delivery_fee_cents,
     freeDeliveryThresholdCents: all.free_delivery_threshold_cents,
   }
+}
+
+/** The slot rules an operator has configured (§7.2). */
+export async function getSlotRules(): Promise<SlotRules> {
+  return slotRulesFrom(await getAllSettings())
 }

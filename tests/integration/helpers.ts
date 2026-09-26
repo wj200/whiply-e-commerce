@@ -1,5 +1,6 @@
 import { PrismaClient } from '@/lib/generated/prisma'
 import { SETTING_DEFAULTS, SETTING_KEYS } from '@/lib/domain/settings-schema'
+import { availableSlots } from '@/lib/domain/delivery-slots'
 
 export const db = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -33,9 +34,10 @@ type ProductOverrides = Partial<{
   sku: string
   slug: string
   name: string
-  category: 'CREAM_CHARGERS' | 'BAKING_EQUIPMENT'
+  category: 'CREAM_CHARGERS' | 'CREAM_PRODUCTS' | 'BAKING_EQUIPMENT'
   priceCents: number
   stockQty: number
+  unitsPerPack: number
   isActive: boolean
   sortOrder: number
 }>
@@ -54,52 +56,40 @@ export async function makeProduct(overrides: ProductOverrides = {}) {
       shortDesc: 'Short description',
       description: 'Full description',
       specs: [{ label: 'Capacity', value: '1 L' }],
-      priceCents: overrides.priceCents ?? 3500,
+      priceCents: overrides.priceCents ?? 4000,
       stockQty: overrides.stockQty ?? 10,
+      unitsPerPack: overrides.unitsPerPack ?? 1,
       isActive: overrides.isActive ?? true,
       sortOrder: overrides.sortOrder ?? seq,
     },
   })
 }
 
-/** The four real SKUs at their real prices, for tests that assert the catalogue. */
+/**
+ * The finalised catalogue at its published prices, for tests that assert the
+ * price list rather than arbitrary numbers. Pack sizes are separate SKUs
+ * carrying `unitsPerPack`, and stock is counted in PACKS.
+ */
 export async function seedLaunchCatalogue() {
-  await makeProduct({
-    sku: 'WHP-N2O-640',
-    slug: 'food-grade-n2o-cream-charger-1l-640g',
-    name: 'Food-Grade N₂O Cream Charger — 1L / 640g',
-    category: 'CREAM_CHARGERS',
-    priceCents: 3500,
-    stockQty: 120,
-    sortOrder: 10,
-  })
-  await makeProduct({
-    sku: 'WHP-N2O-2000',
-    slug: 'food-grade-n2o-cream-charger-3-3l-2000g',
-    name: 'Food-Grade N₂O Cream Charger — 3.3L / 2,000g',
-    category: 'CREAM_CHARGERS',
-    priceCents: 9000,
-    stockQty: 60,
-    sortOrder: 20,
-  })
-  await makeProduct({
-    sku: 'WHP-EQ-SCALE',
-    slug: 'precision-digital-weighing-scale',
-    name: 'Precision Digital Weighing Scale',
-    category: 'BAKING_EQUIPMENT',
-    priceCents: 20000,
-    stockQty: 15,
-    sortOrder: 30,
-  })
-  await makeProduct({
-    sku: 'WHP-EQ-MIXER',
-    slug: 'industrial-grade-professional-mixer',
-    name: 'Industrial-Grade Professional Mixer',
-    category: 'BAKING_EQUIPMENT',
-    priceCents: 55000,
-    stockQty: 8,
-    sortOrder: 40,
-  })
+  const rows = [
+    ['WHP-N2O-640-1', 'n2o-cream-charger-640g-single', '640g N₂O Cream Charger — 1 Tank', 'CREAM_CHARGERS', 4000, 120, 1, 10],
+    ['WHP-N2O-640-6', 'n2o-cream-charger-640g-6-pack', '640g N₂O Cream Charger — 6 Tanks', 'CREAM_CHARGERS', 19000, 40, 6, 11],
+    ['WHP-N2O-640-12', 'n2o-cream-charger-640g-12-pack', '640g N₂O Cream Charger — 12 Tanks', 'CREAM_CHARGERS', 35000, 20, 12, 12],
+    ['WHP-N2O-2500-1', 'n2o-cream-charger-2-5kg-single', '2.5kg N₂O Cream Charger — 1 Tank', 'CREAM_CHARGERS', 12000, 60, 1, 20],
+    ['WHP-N2O-2500-2', 'n2o-cream-charger-2-5kg-2-pack', '2.5kg N₂O Cream Charger — 2 Tanks', 'CREAM_CHARGERS', 22000, 25, 2, 21],
+    ['WHP-N2O-2500-4', 'n2o-cream-charger-2-5kg-4-pack', '2.5kg N₂O Cream Charger — 4 Tanks', 'CREAM_CHARGERS', 40000, 12, 4, 22],
+    ['WHP-CR-POWDER-250', 'whipping-cream-powdered-250g', 'Whipping Cream — Powdered, 250g', 'CREAM_PRODUCTS', 2500, 80, 1, 30],
+    ['WHP-CR-SPRAY', 'whipping-cream-spray', 'Whipping Cream — Spray', 'CREAM_PRODUCTS', 2000, 80, 1, 31],
+    ['WHP-CR-FRESH-250', 'whipping-cream-250g', 'Whipping Cream — 250g', 'CREAM_PRODUCTS', 1000, 100, 1, 32],
+    ['WHP-CR-NESTLE-250', 'nestle-all-purpose-cream-250g', 'Nestlé All Purpose Cream — 250g', 'CREAM_PRODUCTS', 1000, 100, 1, 33],
+    ['WHP-EQ-DISPENSER', 'whipped-cream-dispenser-stainless-steel', 'Whipped Cream Dispenser — Stainless Steel', 'BAKING_EQUIPMENT', 15000, 20, 1, 40],
+    ['WHP-EQ-SCALE', 'precision-digital-weighing-scale', 'Digital Precision Scale with Timer', 'BAKING_EQUIPMENT', 14000, 15, 1, 41],
+    ['WHP-EQ-MIXER', 'industrial-grade-professional-mixer', 'Industrial Mixer', 'BAKING_EQUIPMENT', 60000, 8, 1, 42],
+  ] as const
+
+  for (const [sku, slug, name, category, priceCents, stockQty, unitsPerPack, sortOrder] of rows) {
+    await makeProduct({ sku, slug, name, category, priceCents, stockQty, unitsPerPack, sortOrder })
+  }
 }
 
 type CodeOverrides = Partial<{
@@ -107,12 +97,13 @@ type CodeOverrides = Partial<{
   valueType: 'PERCENT' | 'FIXED'
   percentOff: number | null
   valueCents: number | null
-  limitType: 'TIME_LIMITED' | 'USE_LIMITED'
+  limitType: 'TIME_LIMITED' | 'USE_LIMITED' | 'SEASONAL'
   startsAt: Date | null
   expiresAt: Date | null
   maxUses: number | null
   usesCount: number
   attributionLabel: string | null
+  seasonLabel: string | null
   isActive: boolean
 }>
 
@@ -125,15 +116,34 @@ export async function makeCode(overrides: CodeOverrides = {}) {
       percentOff: overrides.valueType === 'FIXED' ? null : (overrides.percentOff ?? 10),
       valueCents: overrides.valueType === 'FIXED' ? (overrides.valueCents ?? 1500) : null,
       limitType,
-      startsAt: overrides.startsAt ?? null,
+      // The database CHECK insists a SEASONAL code carries BOTH ends of its
+      // window; these defaults keep a test from having to know that.
+      startsAt:
+        limitType === 'SEASONAL'
+          ? (overrides.startsAt ?? new Date(Date.now() - 24 * 3600 * 1000))
+          : (overrides.startsAt ?? null),
       expiresAt:
-        limitType === 'TIME_LIMITED'
+        limitType === 'TIME_LIMITED' || limitType === 'SEASONAL'
           ? (overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 3600 * 1000))
           : null,
       maxUses: limitType === 'USE_LIMITED' ? (overrides.maxUses ?? 5) : null,
       usesCount: overrides.usesCount ?? 0,
       attributionLabel: overrides.attributionLabel ?? null,
+      seasonLabel:
+        limitType === 'SEASONAL' ? (overrides.seasonLabel ?? 'Test Season') : null,
       isActive: overrides.isActive ?? true,
     },
   })
+}
+
+/**
+ * A slot that is legal right now. Tests that only need "some valid delivery"
+ * should use this rather than inventing a timestamp, because the slot rules
+ * are enforced server-side and an invented one is refused.
+ */
+export function aValidSlot(now = new Date()): { method: 'STANDARD'; start: Date; end: Date } {
+  const slots = availableSlots({ method: 'STANDARD', now })
+  const first = slots[0]
+  if (!first) throw new Error('No standard slots available — check DEFAULT_SLOT_RULES')
+  return { method: 'STANDARD', start: first.start, end: first.end }
 }

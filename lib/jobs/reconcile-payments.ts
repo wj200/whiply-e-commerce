@@ -1,16 +1,20 @@
 import 'server-only'
 import { prisma } from '@/lib/db/client'
-import { getPaymentRequest, isPaidStatus, isFailedStatus, isExpiredStatus } from '@/lib/payments/hitpay'
+import { getPaymentIntent, isPaidIntentStatus, isFailedIntentStatus } from '@/lib/payments/stripe'
 import { settlePaidPayment, markPaymentFailed } from '@/lib/domain/payment-settlement'
-import { enqueueDispatch } from './dispatch'
+import { runAfterPayment } from './after-payment'
 import { logger } from '@/lib/observability/logger'
 
 /**
  * Blueprint §11.4 / §6.8 — the missed-webhook safety net.
  *
- * For orders stuck in PENDING_PAYMENT past 10 minutes, ask HitPay directly and
- * apply the SAME transition through the SAME function the webhook uses. This
- * is what makes a missed webhook a DELAY rather than a lost order.
+ * For orders stuck in PENDING_PAYMENT past 10 minutes, ask Stripe directly
+ * and apply the SAME transition through the SAME function the webhook uses.
+ * This is what makes a missed webhook a DELAY rather than a lost order.
+ *
+ * PayNow makes this more than theoretical: the customer leaves the site to
+ * pay in their banking app, so there is no moment at which their browser
+ * could tell us anything, and the webhook is the only channel there is.
  */
 const STALE_AFTER_MINUTES = 10
 
@@ -34,25 +38,27 @@ export async function reconcilePayments(limit = 25): Promise<{ checked: number; 
     if (!order.payment) continue
 
     try {
-      const status = await getPaymentRequest(order.payment.requestId)
+      const intent = await getPaymentIntent(order.payment.requestId)
 
-      if (isPaidStatus(status.status) && status.paidAmountCents !== null) {
+      if (isPaidIntentStatus(intent.status)) {
         const outcome = await settlePaidPayment({
           reference: order.reference,
-          paidAmountCents: status.paidAmountCents,
-          hitpayPaymentId: status.paymentId,
-          method: status.method,
+          paidAmountCents: intent.amountReceivedCents,
+          providerPaymentId: intent.chargeId,
+          method: 'paynow',
           actor: 'job:reconcile',
         })
         if (outcome.kind === 'PAID') {
           settled += 1
-          await enqueueDispatch(outcome.orderId)
+          await runAfterPayment(outcome.orderId)
           logger.warn('reconcile.recovered_missed_webhook', { reference: order.reference })
         }
-      } else if (isFailedStatus(status.status) || isExpiredStatus(status.status)) {
+      } else if (isFailedIntentStatus(intent.status)) {
+        // `canceled` is how an unscanned PayNow QR ends; anything else that
+        // lands here needed a payment method it never got.
         await markPaymentFailed({
           reference: order.reference,
-          status: isExpiredStatus(status.status) ? 'EXPIRED' : 'FAILED',
+          status: intent.status === 'canceled' ? 'EXPIRED' : 'FAILED',
           actor: 'job:reconcile',
         })
       }

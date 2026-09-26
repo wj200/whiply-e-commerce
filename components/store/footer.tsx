@@ -59,7 +59,7 @@ export function Footer() {
           <p className="mono text-faint">Good to know</p>
           <ul className="mt-5 space-y-3.5 text-[0.9375rem] text-muted">
             <li>All prices in Singapore dollars.</li>
-            <li>Secure checkout by HitPay. We never see your card.</li>
+            <li>PayNow checkout via Stripe. No card details, ever.</li>
             <li>No account needed — keep your order reference.</li>
             <li>
               <Link href="/contact" className="text-body underline underline-offset-4 hover:text-ink">

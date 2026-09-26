@@ -13,7 +13,7 @@ export function CollectionHeader({
   title: string
   blurb: string
   count: number
-  active: 'all' | 'equipment' | 'chargers'
+  active: 'all' | 'equipment' | 'chargers' | 'cream'
   showUsageNote?: boolean
 }) {
   return (

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" width="1000" height="1250" role="img" aria-label="Stainless steel whipped cream dispenser">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#F4F1EA"/>
+      <stop offset="55%" stop-color="#EAE5DA"/>
+      <stop offset="100%" stop-color="#DED7C8"/>
+    </linearGradient>
+    <radialGradient id="pool" cx="50%" cy="78%" r="62%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8E8175"/>
+      <stop offset="18%" stop-color="#E7DFD6"/>
+      <stop offset="46%" stop-color="#FBF8F4"/>
+      <stop offset="72%" stop-color="#D8CEC2"/>
+      <stop offset="100%" stop-color="#8A7D71"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0E4D3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="1250" fill="url(#bg)"/>
+  <ellipse cx="500" cy="960" rx="420" ry="230" fill="url(#pool)"/>
+  <ellipse cx="500" cy="948" rx="196" ry="30" fill="#CFCBBE" opacity="0.38"/>
+  <g>
+    <rect x="398" y="470" width="204" height="470" rx="26" fill="url(#steel)"/>
+    <rect x="398" y="470" width="204" height="470" rx="26" fill="none" stroke="#7E7266" stroke-width="2.5" opacity="0.5"/>
+    <rect x="434" y="506" width="24" height="398" rx="12" fill="#ffffff" opacity="0.5"/>
+    <rect x="418" y="416" width="164" height="62" rx="14" fill="#B9AE9F"/>
+    <rect x="418" y="416" width="164" height="62" rx="14" fill="none" stroke="#7E7266" stroke-width="2.5" opacity="0.5"/>
+    <rect x="462" y="330" width="76" height="92" rx="16" fill="url(#steel)"/>
+    <path d="M582 356 h96 a16 16 0 0 1 16 16 v40 a16 16 0 0 1 -16 16 h-30" fill="none" stroke="#7E7266" stroke-width="16" stroke-linecap="round"/>
+    <path d="M694 428 c-4 30 -2 56 6 78 -26 -6 -46 -22 -58 -46z" fill="url(#cream)"/>
+    <rect x="398" y="846" width="204" height="10" fill="#17181A" opacity="0.14"/>
+  </g>
+</svg>

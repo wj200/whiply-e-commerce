@@ -15,37 +15,50 @@ describe('priceBasket (B2)', () => {
     await db.$disconnect()
   })
 
-  async function price(lines: { sku: string; qty: number }[], code?: string | null) {
+  async function price(
+    lines: { sku: string; qty: number }[],
+    code?: string | null,
+    deliveryMethod: 'STANDARD' | 'EXPRESS' = 'STANDARD',
+  ) {
     const { priceBasket } = await import('@/lib/domain/basket')
-    return priceBasket({ lines, codeInput: code ?? null })
+    return priceBasket({ lines, codeInput: code ?? null, deliveryMethod })
   }
 
-  it('prices from the DATABASE, so the S$90 + S$20 = S$110 example holds', async () => {
-    const { basket } = await price([{ sku: 'WHP-N2O-2000', qty: 1 }])
-    expect(basket.subtotalCents).toBe(9000)
-    expect(basket.deliveryFeeCents).toBe(2000)
-    expect(basket.totalCents).toBe(11000)
+  it('prices from the DATABASE: S$120 tank + S$10 standard = S$130', async () => {
+    const { basket } = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }])
+    expect(basket.subtotalCents).toBe(12000)
+    expect(basket.deliveryFeeCents).toBe(1000)
+    expect(basket.totalCents).toBe(13000)
   })
 
-  it('gives free delivery at S$200', async () => {
-    const { basket } = await price([{ sku: 'WHP-EQ-SCALE', qty: 1 }])
-    expect(basket.totalCents).toBe(20000)
-    expect(basket.freeDeliveryApplied).toBe(true)
+  it('charges the express rate when express is chosen', async () => {
+    const { basket } = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }], null, 'EXPRESS')
+    expect(basket.deliveryFeeCents).toBe(2000)
+    expect(basket.totalCents).toBe(14000)
+  })
+
+  it('gives free delivery at S$200, at either speed', async () => {
+    for (const method of ['STANDARD', 'EXPRESS'] as const) {
+      const { basket } = await price([{ sku: 'WHP-N2O-2500-2', qty: 1 }], null, method)
+      expect(basket.subtotalCents).toBe(22000)
+      expect(basket.totalCents).toBe(22000)
+      expect(basket.freeDeliveryApplied).toBe(true)
+    }
   })
 
   it('reflects a price change made in the database with no deploy', async () => {
-    await db.product.update({ where: { sku: 'WHP-N2O-640' }, data: { priceCents: 4000 } })
-    const { basket } = await price([{ sku: 'WHP-N2O-640', qty: 2 }])
-    expect(basket.subtotalCents).toBe(8000)
+    await db.product.update({ where: { sku: 'WHP-N2O-640-1' }, data: { priceCents: 4500 } })
+    const { basket } = await price([{ sku: 'WHP-N2O-640-1', qty: 2 }])
+    expect(basket.subtotalCents).toBe(9000)
   })
 
   it('DROPS a product that has been disabled, and says why', async () => {
     await db.product.update({ where: { sku: 'WHP-EQ-MIXER' }, data: { isActive: false } })
     const { basket, issues } = await price([
       { sku: 'WHP-EQ-MIXER', qty: 1 },
-      { sku: 'WHP-N2O-640', qty: 1 },
+      { sku: 'WHP-N2O-640-1', qty: 1 },
     ])
-    expect(basket.lines.map((l) => l.sku)).toEqual(['WHP-N2O-640'])
+    expect(basket.lines.map((l) => l.sku)).toEqual(['WHP-N2O-640-1'])
     expect(issues[0]).toMatchObject({ sku: 'WHP-EQ-MIXER', kind: 'UNAVAILABLE' })
   })
 
@@ -88,34 +101,61 @@ describe('discount codes end to end (B4)', () => {
 
   it('applies WELCOME10 case-insensitively', async () => {
     await makeCode({ code: 'WELCOME10', percentOff: 10 })
-    const { basket, codeError } = await price([{ sku: 'WHP-N2O-2000', qty: 1 }], 'welcome10')
+    const { basket, codeError } = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }], 'welcome10')
     expect(codeError).toBeNull()
-    expect(basket.discountCents).toBe(900)
-    expect(basket.totalCents).toBe(9000 - 900 + 2000)
+    expect(basket.discountCents).toBe(1200)
+    expect(basket.totalCents).toBe(12000 - 1200 + 1000)
   })
 
   it('refuses an expired code by name and date', async () => {
     await makeCode({ code: 'OLD10', expiresAt: new Date('2020-01-01') })
-    const { basket, codeError } = await price([{ sku: 'WHP-N2O-2000', qty: 1 }], 'OLD10')
+    const { basket, codeError } = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }], 'OLD10')
     expect(codeError).toMatch(/expired on 1 Jan 2020/)
     expect(basket.discountCents).toBe(0)
   })
 
   it('refuses a fully redeemed use-limited code on the sixth attempt', async () => {
     await makeCode({ code: 'FIVE', limitType: 'USE_LIMITED', maxUses: 5, usesCount: 5 })
-    const { codeError } = await price([{ sku: 'WHP-N2O-2000', qty: 1 }], 'FIVE')
+    const { codeError } = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }], 'FIVE')
     expect(codeError).toMatch(/fully redeemed/)
+  })
+
+  it('applies a SEASONAL code inside its window and refuses it outside', async () => {
+    await makeCode({
+      code: 'XMAS26',
+      limitType: 'SEASONAL',
+      seasonLabel: 'Christmas 2026',
+      percentOff: 10,
+      startsAt: new Date(Date.now() - 24 * 3600 * 1000),
+      expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
+    })
+    const live = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }], 'XMAS26')
+    expect(live.codeError).toBeNull()
+    expect(live.basket.discountCents).toBe(1200)
+
+    // The same row, once its season has passed — nobody disabled it.
+    await db.discountCode.update({
+      where: { code: 'XMAS26' },
+      data: {
+        startsAt: new Date(Date.now() - 48 * 3600 * 1000),
+        expiresAt: new Date(Date.now() - 3600 * 1000),
+      },
+    })
+    const closed = await price([{ sku: 'WHP-N2O-2500-1', qty: 1 }], 'XMAS26')
+    expect(closed.codeError).toMatch(/Christmas 2026 ended/)
+    expect(closed.basket.discountCents).toBe(0)
   })
 
   it('THE ORDERING DECISION: a discount that drops the basket below the threshold restores the fee', async () => {
     await makeCode({ code: 'TEN', percentOff: 10 })
-    const before = await price([{ sku: 'WHP-EQ-SCALE', qty: 1 }])
+    const before = await price([{ sku: 'WHP-N2O-2500-2', qty: 1 }])
     expect(before.basket.deliveryFeeCents).toBe(0)
 
-    const after = await price([{ sku: 'WHP-EQ-SCALE', qty: 1 }], 'TEN')
-    expect(after.basket.discountCents).toBe(2000)
-    expect(after.basket.deliveryFeeCents).toBe(2000)
-    expect(after.basket.totalCents).toBe(20000 - 2000 + 2000)
+    // S$220 less 10% is S$198 — below the S$200 threshold, so the fee returns.
+    const after = await price([{ sku: 'WHP-N2O-2500-2', qty: 1 }], 'TEN')
+    expect(after.basket.discountCents).toBe(2200)
+    expect(after.basket.deliveryFeeCents).toBe(1000)
+    expect(after.basket.totalCents).toBe(22000 - 2200 + 1000)
   })
 })
 

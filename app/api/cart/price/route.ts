@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
 const bodySchema = z.object({
   lines: z.array(cartLineSchema).max(MAX_LINES),
   code: z.string().max(64).nullable().optional(),
+  deliveryMethod: z.enum(['STANDARD', 'EXPRESS']).optional(),
 })
 
 /** Pure read: re-price a {sku, qty} basket. No prices are accepted. */
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
   const { basket, issues, codeError } = await priceBasket({
     lines: parsed.data.lines,
     codeInput: parsed.data.code ?? null,
+    deliveryMethod: parsed.data.deliveryMethod,
   })
 
   return NextResponse.json({
@@ -54,7 +56,9 @@ export async function POST(request: Request) {
     totalCents: basket.totalCents,
     freeDeliveryApplied: basket.freeDeliveryApplied,
     amountToFreeDeliveryCents: basket.amountToFreeDeliveryCents,
-    baseDeliveryFeeCents: basket.baseDeliveryFeeCents,
+    deliveryMethod: basket.deliveryMethod,
+    standardDeliveryFeeCents: basket.standardDeliveryFeeCents,
+    expressDeliveryFeeCents: basket.expressDeliveryFeeCents,
     freeDeliveryThresholdCents: basket.freeDeliveryThresholdCents,
     appliedCode: basket.appliedCode,
     issues,

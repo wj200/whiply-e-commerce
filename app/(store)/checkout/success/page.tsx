@@ -5,6 +5,8 @@ import { isValidReference } from '@/lib/domain/reference'
 import { formatSgd, cents } from '@/lib/money'
 import { ButtonLink } from '@/components/ui/button'
 import { PaymentPoller } from '@/components/store/payment-poller'
+import { formatSlotWithDate } from '@/lib/domain/delivery-slots'
+import { methodLabel } from '@/lib/notify/order-summary'
 
 export const metadata: Metadata = {
   title: 'Order confirmed',
@@ -67,7 +69,21 @@ export default async function SuccessPage({
       <p className="mt-5 text-[0.9375rem] leading-relaxed text-body">
         <strong className="font-medium text-ink">Save this reference.</strong> WHIPLY does not use
         customer accounts, so this is how we find your order if you contact us.
+        {paid ? ' A receipt is on its way to your email.' : null}
       </p>
+
+      {order.deliverySlotStart && order.deliverySlotEnd ? (
+        <div className="mt-8 border border-line-strong px-5 py-4">
+          <p className="mono text-faint">Your delivery slot</p>
+          <p className="mt-2 text-[1.0625rem] font-medium text-ink">
+            {formatSlotWithDate({
+              start: order.deliverySlotStart,
+              end: order.deliverySlotEnd,
+            })}
+          </p>
+          <p className="mt-1 text-[0.875rem] text-muted">{methodLabel(order.deliveryMethod)}</p>
+        </div>
+      ) : null}
 
       <section className="mt-12">
         <p className="mono border-b border-line pb-4 text-faint">What you ordered</p>
@@ -93,7 +109,7 @@ export default async function SuccessPage({
             />
           ) : null}
           <Row
-            label="Delivery"
+            label={order.deliveryMethod === 'EXPRESS' ? 'Express delivery' : 'Standard delivery'}
             value={
               order.deliveryFeeCents === 0
                 ? 'FREE'
@@ -115,16 +131,16 @@ export default async function SuccessPage({
           <p className="mono text-dark-muted">What happens next</p>
           <ol className="mt-5 space-y-3 text-[0.9375rem] leading-relaxed text-paper/85">
             <li>
-              <span className="figure text-dark-muted">01</span> &nbsp;We prepare your order at our
-              warehouse.
+              <span className="figure text-dark-muted">01</span> &nbsp;A receipt is emailed to you,
+              and we are told to start packing.
             </li>
             <li>
-              <span className="figure text-dark-muted">02</span> &nbsp;A courier collects it and
-              delivers to the address you gave.
+              <span className="figure text-dark-muted">02</span> &nbsp;We pack your order and set
+              off in time for the slot you booked.
             </li>
             <li>
-              <span className="figure text-dark-muted">03</span> &nbsp;Contact us with your
-              reference for an update — we do not send automatic updates.
+              <span className="figure text-dark-muted">03</span> &nbsp;If anything changes we call
+              the mobile number on the order. For an update, contact us with your reference.
             </li>
           </ol>
         </section>

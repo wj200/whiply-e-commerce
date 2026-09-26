@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEFAULT_SLOT_RULES, type SlotRules } from './delivery-slots'
 
 /**
  * Blueprint §9.7 — every operator-tunable value in the system.
@@ -20,14 +21,21 @@ export const pickupAddressSchema = z.object({
 export type PickupAddress = z.infer<typeof pickupAddressSchema>
 
 export const settingsSchema = {
-  delivery_fee_cents: z.number().int().min(0).max(100_000),
+  standard_delivery_fee_cents: z.number().int().min(0).max(100_000),
+  express_delivery_fee_cents: z.number().int().min(0).max(100_000),
   free_delivery_threshold_cents: z.number().int().min(0).max(10_000_000),
-  auto_dispatch_enabled: z.boolean(),
   pickup_address: pickupAddressSchema.nullable(),
-  lalamove_vehicle_type: z.string().min(1).max(40),
   order_expiry_minutes: z.number().int().min(5).max(10_080),
   low_stock_threshold_default: z.number().int().min(0).max(10_000),
   store_open: z.boolean(),
+
+  // Fulfilment clock (§7.2). Operator-tunable because "we are closing early
+  // on Friday" must not need a deploy.
+  delivery_first_hour: z.number().int().min(0).max(23),
+  delivery_last_slot_hour: z.number().int().min(0).max(23),
+  delivery_lead_minutes: z.number().int().min(0).max(24 * 60),
+  order_cutoff_hour: z.number().int().min(1).max(24),
+  express_window_minutes: z.number().int().min(30).max(24 * 60),
 } as const
 
 export type SettingKey = keyof typeof settingsSchema
@@ -36,23 +44,51 @@ export type SettingValue<K extends SettingKey> = z.infer<(typeof settingsSchema)
 export type SettingsMap = { [K in SettingKey]: SettingValue<K> }
 
 /**
- * Defaults. `auto_dispatch_enabled` is false — GUARD-3. It is not a
- * placeholder: the system ships with automatic courier dispatch OFF and it
- * stays off until a carrier has confirmed in writing what it will carry.
+ * Defaults, matching the published price list: S$10 standard (2–3 working
+ * days), S$20 express (within two hours), free at S$200. Delivery slots run
+ * 10am to 11pm — the last one STARTS at 10pm — with an hour's notice, and the
+ * website itself stops taking orders at 10pm.
  */
 export const SETTING_DEFAULTS: SettingsMap = {
-  delivery_fee_cents: 2000,
+  standard_delivery_fee_cents: 1000,
+  express_delivery_fee_cents: 2000,
   free_delivery_threshold_cents: 20000,
-  auto_dispatch_enabled: false,
   pickup_address: null,
-  lalamove_vehicle_type: 'MOTORCYCLE',
   order_expiry_minutes: 120,
   low_stock_threshold_default: 10,
   store_open: true,
+
+  delivery_first_hour: 10,
+  delivery_last_slot_hour: 22,
+  delivery_lead_minutes: 60,
+  order_cutoff_hour: 22,
+  express_window_minutes: 120,
 }
 
 export const SETTING_KEYS = Object.keys(settingsSchema) as SettingKey[]
 
 export function parseSetting<K extends SettingKey>(key: K, raw: unknown): SettingValue<K> {
   return settingsSchema[key].parse(raw) as SettingValue<K>
+}
+
+/**
+ * The slot rules, assembled from settings. Kept here rather than in
+ * delivery-slots.ts so that module stays pure and free of storage concerns.
+ */
+export function slotRulesFrom(settings: {
+  delivery_first_hour: number
+  delivery_last_slot_hour: number
+  delivery_lead_minutes: number
+  order_cutoff_hour: number
+  express_window_minutes: number
+}): SlotRules {
+  return {
+    firstHour: settings.delivery_first_hour,
+    lastStartHour: settings.delivery_last_slot_hour,
+    leadMinutes: settings.delivery_lead_minutes,
+    orderCutoffHour: settings.order_cutoff_hour,
+    expressWindowMinutes: settings.express_window_minutes,
+    standardMinWorkingDays: DEFAULT_SLOT_RULES.standardMinWorkingDays,
+    standardMaxWorkingDays: DEFAULT_SLOT_RULES.standardMaxWorkingDays,
+  }
 }
