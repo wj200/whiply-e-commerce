@@ -96,7 +96,46 @@ Start this first in wall-clock time; it finishes last.
 
 ---
 
-## Step 4 — Vercel project
+## Step 4 — Run the migrations and seed — BEFORE the first deploy
+
+**Order matters here, and getting it wrong fails the build.** The storefront's
+category pages and product pages are prerendered at build time, so
+`next build` *reads the database*. An unreachable or unmigrated database is a
+failed deploy; a migrated-but-unseeded one ships an empty shop that stays empty
+until the next build.
+
+Vercel's build does **not** run migrations (deliberately — a build should not
+mutate a production database). Run them yourself, from your laptop, using the
+**direct** connection string, before you create the Vercel project:
+
+```bash
+git clone https://github.com/wj200/whiply-e-commerce
+cd whiply-e-commerce && git checkout main
+npm ci
+
+export DATABASE_URL="<Neon DIRECT string>"
+export DIRECT_DATABASE_URL="<Neon DIRECT string>"
+
+npx prisma migrate deploy     # creates 14 tables + the CHECK constraints
+npx tsx prisma/seed.ts        # 13 products, 12 settings
+npm run admin:create owner@whiply.sg
+```
+
+`admin:create` prints an `otpauth://` URI — scan it, then type the 6-digit code
+back. It will not create the account until a code verifies.
+
+Confirm:
+
+```bash
+npx prisma studio    # or psql: SELECT sku, price_cents FROM products;
+```
+
+You should see thirteen products and twelve settings rows, with the 640 g
+single at `4000` cents and the twelve-pack at `35000`.
+
+---
+
+## Step 5 — Vercel project
 
 1. Sign up at **vercel.com** with the business email; enable 2FA.
 2. **Add New → Project → Import Git Repository** → `wj200/whiply-e-commerce`.
@@ -155,39 +194,6 @@ replace it with the real value and redeploy once the endpoint exists.
 6. **Settings → Domains → Add** your domain. Vercel prints the exact A / CNAME
    records. Add them at your registrar.
 7. Wait for the certificate. Confirm `http://` redirects to `https://`.
-
----
-
-## Step 5 — Run the migrations
-
-Vercel's build does **not** run migrations (deliberately — a build should not
-mutate a production database). Run them yourself, from your laptop, using the
-**direct** connection string:
-
-```bash
-git clone https://github.com/wj200/whiply-e-commerce
-cd whiply-e-commerce
-npm ci
-
-export DATABASE_URL="<Neon DIRECT string>"
-export DIRECT_DATABASE_URL="<Neon DIRECT string>"
-
-npx prisma migrate deploy     # creates 14 tables + the CHECK constraints
-npx tsx prisma/seed.ts        # 13 products, 12 settings
-npm run admin:create owner@whiply.sg
-```
-
-`admin:create` prints an `otpauth://` URI — scan it, then type the 6-digit code
-back. It will not create the account until a code verifies.
-
-Confirm:
-
-```bash
-npx prisma studio    # or psql: SELECT sku, price_cents FROM products;
-```
-
-You should see thirteen products and twelve settings rows, with the 640 g
-single at `4000` cents and the twelve-pack at `35000`.
 
 ---
 
