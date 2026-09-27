@@ -9,7 +9,9 @@ export function DiscountForm() {
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState(false)
   const [valueType, setValueType] = useState<'PERCENT' | 'FIXED'>('PERCENT')
-  const [limitType, setLimitType] = useState<'TIME_LIMITED' | 'USE_LIMITED'>('TIME_LIMITED')
+  const [limitType, setLimitType] = useState<'TIME_LIMITED' | 'USE_LIMITED' | 'SEASONAL'>(
+    'TIME_LIMITED',
+  )
 
   return (
     <form
@@ -74,6 +76,7 @@ export function DiscountForm() {
             [
               ['TIME_LIMITED', 'On a date'],
               ['USE_LIMITED', 'After N uses'],
+              ['SEASONAL', 'A season'],
             ] as const
           ).map(([t, label]) => (
             <label
@@ -97,13 +100,37 @@ export function DiscountForm() {
       </fieldset>
 
       {limitType === 'TIME_LIMITED' ? (
-        <Field id="expiresAt" label="Expires" required>
+        <Field id="expiresAt" label="Expires" hint="End of that day, Singapore time." required>
           <Input id="expiresAt" name="expiresAt" type="date" required />
         </Field>
-      ) : (
+      ) : limitType === 'USE_LIMITED' ? (
         <Field id="maxUses" label="Maximum uses" required>
           <Input id="maxUses" name="maxUses" inputMode="numeric" placeholder="5" required className="figure" />
         </Field>
+      ) : (
+        <>
+          <Field
+            id="seasonLabel"
+            label="Season name"
+            hint="Shown to the customer when the code is not yet live, or has closed."
+            required
+          >
+            <Input id="seasonLabel" name="seasonLabel" placeholder="Christmas 2026" required />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="startsAt" label="Season opens" required>
+              <Input id="startsAt" name="startsAt" type="date" required />
+            </Field>
+            <Field id="expiresAt" label="Season closes" required>
+              <Input id="expiresAt" name="expiresAt" type="date" required />
+            </Field>
+          </div>
+          <p className="text-[0.8125rem] leading-relaxed text-muted">
+            A seasonal code switches itself on and off. It is dormant before the opening date and
+            stops on its own at the end of the closing day — nobody has to remember to disable it.
+            Dates are Singapore time, both ends inclusive.
+          </p>
+        </>
       )}
 
       <Field id="attributionLabel" label="Referrer" hint="Groups codes in the by-referrer report.">

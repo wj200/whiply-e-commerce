@@ -8,26 +8,49 @@ import { usePricedCart } from '@/lib/cart/use-priced-cart'
 import { formatSgd, cents } from '@/lib/money'
 import { productImageSrc } from '@/lib/media/product-image'
 import { CheckoutFields, type FieldErrors } from './checkout-fields'
+import { DeliveryPicker } from './delivery-picker'
 import { ButtonLink } from '@/components/ui/button'
 import { inputClasses } from '@/components/ui/field'
 
 /**
- * The full-page checkout. Same endpoints and same field set as the bag
- * drawer — the drawer is the primary surface, this is the durable URL.
+ * Blueprint §6.1 — THE CHECKOUT PAGE.
+ *
+ * The only surface that takes delivery details and starts a payment. The bag
+ * drawer collects items and a code and then sends the customer here, so
+ * there is exactly one form to keep correct.
+ *
+ * Nothing on this page decides money. Every figure shown comes from
+ * /api/cart/price, and the total the customer is charged is recomputed once
+ * more server-side when the order is created (GUARD-1). Changing the
+ * delivery speed re-prices on the server rather than adding a fee in the
+ * browser.
  */
-export function CheckoutView() {
+export function CheckoutView({ initialCode }: { initialCode?: string | null }) {
   const { cart } = useCart()
-  const [code, setCode] = useState<string | null>(null)
+  const [code, setCode] = useState<string | null>(initialCode?.trim() || null)
   const [codeInput, setCodeInput] = useState('')
-  const { data, loading, isEmpty, hydrated } = usePricedCart(code)
+  const [method, setMethod] = useState<'STANDARD' | 'EXPRESS'>('STANDARD')
+  const [slotStart, setSlotStart] = useState<string | null>(null)
+
+  const { data, loading, isEmpty, hydrated } = usePricedCart(code, method)
 
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [slotError, setSlotError] = useState<string | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) return
+
+    setFormError(null)
+    setSlotError(null)
+    setErrors({})
+
+    if (!slotStart) {
+      setSlotError('Choose a delivery slot.')
+      return
+    }
 
     const form = new FormData(event.currentTarget)
     const contact = {
@@ -41,8 +64,6 @@ export function CheckoutView() {
     }
 
     setSubmitting(true)
-    setFormError(null)
-    setErrors({})
 
     try {
       const res = await fetch('/api/checkout', {
@@ -51,6 +72,7 @@ export function CheckoutView() {
         body: JSON.stringify({
           lines: cart.lines,
           contact,
+          delivery: { method, slotStart },
           code,
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -58,10 +80,19 @@ export function CheckoutView() {
       const body = (await res.json()) as {
         checkoutUrl?: string
         error?: string
+        field?: string
         issues?: { path: string; message: string }[]
       }
 
       if (!res.ok) {
+        if (body.field === 'delivery.slotStart') {
+          // The slot went stale between rendering and submitting. Clearing it
+          // forces a fresh pick rather than a retry of the same bad one.
+          setSlotStart(null)
+          setSlotError(body.error ?? 'That slot is no longer available.')
+          setSubmitting(false)
+          return
+        }
         if (body.issues?.length) {
           const next: FieldErrors = {}
           for (const issue of body.issues) {
@@ -123,6 +154,20 @@ export function CheckoutView() {
       >
         <div>
           <CheckoutFields errors={errors} />
+
+          <div className="mt-10 border-t border-line pt-9">
+            <DeliveryPicker
+              method={method}
+              onMethodChange={setMethod}
+              slotStart={slotStart}
+              onSlotChange={setSlotStart}
+              standardFeeCents={data.standardDeliveryFeeCents}
+              expressFeeCents={data.expressDeliveryFeeCents}
+              freeDeliveryApplied={data.freeDeliveryApplied}
+              error={slotError}
+            />
+          </div>
+
           <p className="mono mt-8 border-t border-line pt-6 text-faint">
             Delivery only — no self-collection.
           </p>
@@ -212,7 +257,7 @@ export function CheckoutView() {
               />
             ) : null}
             <SummaryRow
-              label="Delivery"
+              label={method === 'EXPRESS' ? 'Express delivery' : 'Standard delivery'}
               value={
                 data.freeDeliveryApplied
                   ? 'FREE'
@@ -220,14 +265,23 @@ export function CheckoutView() {
               }
             />
             <p className="mt-2 text-[0.8125rem] text-muted">
-              Free above {formatSgd(cents(data.freeDeliveryThresholdCents))} after discounts.{' '}
-              {formatSgd(cents(data.baseDeliveryFeeCents))} otherwise.
+              {data.freeDeliveryApplied ? (
+                <>
+                  Free at {formatSgd(cents(data.freeDeliveryThresholdCents))} and above — express
+                  included.
+                </>
+              ) : (
+                <>
+                  {formatSgd(cents(data.amountToFreeDeliveryCents), { alwaysCents: true })} more for
+                  free delivery at either speed.
+                </>
+              )}
             </p>
           </div>
 
           <div className="flex items-baseline justify-between border-t border-line py-6">
             <span className="text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
-              Estimated total
+              Total to pay
             </span>
             <span className="figure text-[1.375rem] font-semibold text-ink">
               {formatSgd(cents(data.totalCents), { alwaysCents: true })}
@@ -245,14 +299,15 @@ export function CheckoutView() {
             disabled={submitting || loading}
             className="flex h-[3.5rem] w-full items-center justify-between bg-ink px-6 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-body disabled:opacity-40"
           >
-            {submitting ? 'Starting payment…' : 'Pay now'}
+            {submitting ? 'Starting PayNow…' : 'Pay with PayNow'}
             <span className="figure">
               {formatSgd(cents(data.totalCents), { alwaysCents: true })}
             </span>
           </button>
 
           <p className="mt-4 text-[0.75rem] leading-relaxed text-muted">
-            You will be taken to HitPay to pay securely. WHIPLY never sees your card details.
+            PayNow only. You will be shown a QR code to scan in your banking app. Your order is
+            confirmed the moment the payment clears — no card details are ever entered or stored.
           </p>
 
           <p className="mt-4">

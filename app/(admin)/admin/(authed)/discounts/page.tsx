@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/db/client'
 import { codePerformance, referrerPerformance } from '@/lib/domain/redemptions'
-import { describeCode } from '@/lib/domain/discounts'
+import { describeCode, seasonPhase, type DiscountCodeRow } from '@/lib/domain/discounts'
 import { PageTitle, Card, Th, Td } from '@/components/admin/shell'
 import { ActionForm } from '@/components/admin/action-button'
 import { DiscountForm } from '@/components/admin/discount-form'
@@ -19,12 +19,13 @@ export default async function DiscountsPage() {
   ])
 
   const perfById = new Map(performance.map((p) => [p.codeId, p]))
+  const now = new Date()
 
   return (
     <>
       <PageTitle
         title="Discounts"
-        subtitle="Two value types, two limit types. Nothing else — by design."
+        subtitle="Two value types; limited by time, by uses, or by a season. Nothing else — by design."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
@@ -49,30 +50,37 @@ export default async function DiscountsPage() {
                 <tbody>
                   {codes.map((code) => {
                     const perf = perfById.get(code.id)
+                    const row: DiscountCodeRow = {
+                      id: code.id,
+                      code: code.code,
+                      valueType: code.valueType,
+                      percentOff: code.percentOff,
+                      valueCents: code.valueCents,
+                      limitType: code.limitType,
+                      startsAt: code.startsAt,
+                      expiresAt: code.expiresAt,
+                      maxUses: code.maxUses,
+                      usesCount: code.usesCount,
+                      attributionLabel: code.attributionLabel,
+                      seasonLabel: code.seasonLabel,
+                      isActive: code.isActive,
+                    }
+                    const phase = seasonPhase(row, now)
                     return (
                       <tr key={code.id} className="hover:bg-veil">
                         <Td>
                           <span className="figure font-medium text-ink">{code.code}</span>
                           {!code.isActive ? (
                             <span className="mono-sm ml-2 text-faint">OFF</span>
+                          ) : phase === 'UPCOMING' ? (
+                            <span className="mono-sm ml-2 text-muted">UPCOMING</span>
+                          ) : phase === 'ENDED' ? (
+                            <span className="mono-sm ml-2 text-faint">SEASON ENDED</span>
+                          ) : phase === 'RUNNING' ? (
+                            <span className="mono-sm ml-2 text-[#1f5d4c]">IN SEASON</span>
                           ) : null}
                         </Td>
-                        <Td className="text-muted">
-                          {describeCode({
-                            id: code.id,
-                            code: code.code,
-                            valueType: code.valueType,
-                            percentOff: code.percentOff,
-                            valueCents: code.valueCents,
-                            limitType: code.limitType,
-                            startsAt: code.startsAt,
-                            expiresAt: code.expiresAt,
-                            maxUses: code.maxUses,
-                            usesCount: code.usesCount,
-                            attributionLabel: code.attributionLabel,
-                            isActive: code.isActive,
-                          })}
-                        </Td>
+                        <Td className="text-muted">{describeCode(row)}</Td>
                         <Td className="text-muted">{code.attributionLabel ?? '—'}</Td>
                         <Td className="figure">{perf?.redemptions ?? 0}</Td>
                         <Td className="figure text-ink">

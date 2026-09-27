@@ -115,6 +115,12 @@ export const CATEGORY_META: Record<
     blurb:
       'Food-grade N₂O cream chargers for professional cream whipping and culinary preparation.',
   },
+  CREAM_PRODUCTS: {
+    slug: '/cream-products',
+    title: 'Cream Products',
+    blurb:
+      'Whipping creams and all-purpose creams, ready for the dispenser or the mixing bowl.',
+  },
   BAKING_EQUIPMENT: {
     slug: '/baking-equipment',
     title: 'Baking Equipment',

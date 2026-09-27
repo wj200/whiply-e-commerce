@@ -35,7 +35,9 @@ export type OrderItem = $Result.DefaultSelection<Prisma.$OrderItemPayload>
 export type Payment = $Result.DefaultSelection<Prisma.$PaymentPayload>
 /**
  * Model Delivery
- * 
+ * Self-managed fulfilment. No courier API: the operator dispatches and
+ * advances the status by hand, optionally recording who carried it and
+ * what it cost as an internal figure.
  */
 export type Delivery = $Result.DefaultSelection<Prisma.$DeliveryPayload>
 /**
@@ -85,10 +87,19 @@ export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
 export namespace $Enums {
   export const ProductCategory: {
   CREAM_CHARGERS: 'CREAM_CHARGERS',
+  CREAM_PRODUCTS: 'CREAM_PRODUCTS',
   BAKING_EQUIPMENT: 'BAKING_EQUIPMENT'
 };
 
 export type ProductCategory = (typeof ProductCategory)[keyof typeof ProductCategory]
+
+
+export const DeliveryMethod: {
+  STANDARD: 'STANDARD',
+  EXPRESS: 'EXPRESS'
+};
+
+export type DeliveryMethod = (typeof DeliveryMethod)[keyof typeof DeliveryMethod]
 
 
 export const OrderStatus: {
@@ -119,25 +130,16 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
 
 export const DeliveryStatus: {
-  NOT_BOOKED: 'NOT_BOOKED',
-  BOOKING: 'BOOKING',
-  DRIVER_ASSIGNED: 'DRIVER_ASSIGNED',
-  PICKED_UP: 'PICKED_UP',
-  IN_TRANSIT: 'IN_TRANSIT',
+  NOT_SCHEDULED: 'NOT_SCHEDULED',
+  SCHEDULED: 'SCHEDULED',
+  PREPARING: 'PREPARING',
+  OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
   DELIVERED: 'DELIVERED',
   CANCELLED: 'CANCELLED',
   FAILED: 'FAILED'
 };
 
 export type DeliveryStatus = (typeof DeliveryStatus)[keyof typeof DeliveryStatus]
-
-
-export const DeliveryProvider: {
-  LALAMOVE: 'LALAMOVE',
-  MANUAL: 'MANUAL'
-};
-
-export type DeliveryProvider = (typeof DeliveryProvider)[keyof typeof DeliveryProvider]
 
 
 export const DiscountValueType: {
@@ -150,7 +152,8 @@ export type DiscountValueType = (typeof DiscountValueType)[keyof typeof Discount
 
 export const DiscountLimitType: {
   TIME_LIMITED: 'TIME_LIMITED',
-  USE_LIMITED: 'USE_LIMITED'
+  USE_LIMITED: 'USE_LIMITED',
+  SEASONAL: 'SEASONAL'
 };
 
 export type DiscountLimitType = (typeof DiscountLimitType)[keyof typeof DiscountLimitType]
@@ -179,6 +182,10 @@ export type ProductCategory = $Enums.ProductCategory
 
 export const ProductCategory: typeof $Enums.ProductCategory
 
+export type DeliveryMethod = $Enums.DeliveryMethod
+
+export const DeliveryMethod: typeof $Enums.DeliveryMethod
+
 export type OrderStatus = $Enums.OrderStatus
 
 export const OrderStatus: typeof $Enums.OrderStatus
@@ -190,10 +197,6 @@ export const PaymentStatus: typeof $Enums.PaymentStatus
 export type DeliveryStatus = $Enums.DeliveryStatus
 
 export const DeliveryStatus: typeof $Enums.DeliveryStatus
-
-export type DeliveryProvider = $Enums.DeliveryProvider
-
-export const DeliveryProvider: typeof $Enums.DeliveryProvider
 
 export type DiscountValueType = $Enums.DiscountValueType
 
@@ -2239,6 +2242,7 @@ export namespace Prisma {
   }
 
   export type ProductAvgAggregateOutputType = {
+    unitsPerPack: number | null
     priceCents: number | null
     stockQty: number | null
     lowStockAt: number | null
@@ -2246,6 +2250,7 @@ export namespace Prisma {
   }
 
   export type ProductSumAggregateOutputType = {
+    unitsPerPack: number | null
     priceCents: number | null
     stockQty: number | null
     lowStockAt: number | null
@@ -2261,6 +2266,7 @@ export namespace Prisma {
     shortDesc: string | null
     cardLabel: string | null
     description: string | null
+    unitsPerPack: number | null
     priceCents: number | null
     imageUrl: string | null
     imageAlt: string | null
@@ -2281,6 +2287,7 @@ export namespace Prisma {
     shortDesc: string | null
     cardLabel: string | null
     description: string | null
+    unitsPerPack: number | null
     priceCents: number | null
     imageUrl: string | null
     imageAlt: string | null
@@ -2302,6 +2309,7 @@ export namespace Prisma {
     cardLabel: number
     description: number
     specs: number
+    unitsPerPack: number
     priceCents: number
     imageUrl: number
     imageAlt: number
@@ -2316,6 +2324,7 @@ export namespace Prisma {
 
 
   export type ProductAvgAggregateInputType = {
+    unitsPerPack?: true
     priceCents?: true
     stockQty?: true
     lowStockAt?: true
@@ -2323,6 +2332,7 @@ export namespace Prisma {
   }
 
   export type ProductSumAggregateInputType = {
+    unitsPerPack?: true
     priceCents?: true
     stockQty?: true
     lowStockAt?: true
@@ -2338,6 +2348,7 @@ export namespace Prisma {
     shortDesc?: true
     cardLabel?: true
     description?: true
+    unitsPerPack?: true
     priceCents?: true
     imageUrl?: true
     imageAlt?: true
@@ -2358,6 +2369,7 @@ export namespace Prisma {
     shortDesc?: true
     cardLabel?: true
     description?: true
+    unitsPerPack?: true
     priceCents?: true
     imageUrl?: true
     imageAlt?: true
@@ -2379,6 +2391,7 @@ export namespace Prisma {
     cardLabel?: true
     description?: true
     specs?: true
+    unitsPerPack?: true
     priceCents?: true
     imageUrl?: true
     imageAlt?: true
@@ -2487,6 +2500,7 @@ export namespace Prisma {
     cardLabel: string | null
     description: string
     specs: JsonValue
+    unitsPerPack: number
     priceCents: number
     imageUrl: string | null
     imageAlt: string | null
@@ -2527,6 +2541,7 @@ export namespace Prisma {
     cardLabel?: boolean
     description?: boolean
     specs?: boolean
+    unitsPerPack?: boolean
     priceCents?: boolean
     imageUrl?: boolean
     imageAlt?: boolean
@@ -2550,6 +2565,7 @@ export namespace Prisma {
     cardLabel?: boolean
     description?: boolean
     specs?: boolean
+    unitsPerPack?: boolean
     priceCents?: boolean
     imageUrl?: boolean
     imageAlt?: boolean
@@ -2571,6 +2587,7 @@ export namespace Prisma {
     cardLabel?: boolean
     description?: boolean
     specs?: boolean
+    unitsPerPack?: boolean
     priceCents?: boolean
     imageUrl?: boolean
     imageAlt?: boolean
@@ -2592,6 +2609,7 @@ export namespace Prisma {
     cardLabel?: boolean
     description?: boolean
     specs?: boolean
+    unitsPerPack?: boolean
     priceCents?: boolean
     imageUrl?: boolean
     imageAlt?: boolean
@@ -2603,7 +2621,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sku" | "slug" | "name" | "category" | "shortDesc" | "cardLabel" | "description" | "specs" | "priceCents" | "imageUrl" | "imageAlt" | "stockQty" | "lowStockAt" | "isActive" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sku" | "slug" | "name" | "category" | "shortDesc" | "cardLabel" | "description" | "specs" | "unitsPerPack" | "priceCents" | "imageUrl" | "imageAlt" | "stockQty" | "lowStockAt" | "isActive" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     orderItems?: boolean | Product$orderItemsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -2626,6 +2644,11 @@ export namespace Prisma {
       cardLabel: string | null
       description: string
       specs: Prisma.JsonValue
+      /**
+       * How many physical units one purchase of this SKU represents (a 6-tank
+       * pack is unitsPerPack = 6). Stock is counted in PACKS, not units.
+       */
+      unitsPerPack: number
       priceCents: number
       imageUrl: string | null
       imageAlt: string | null
@@ -3068,6 +3091,7 @@ export namespace Prisma {
     readonly cardLabel: FieldRef<"Product", 'String'>
     readonly description: FieldRef<"Product", 'String'>
     readonly specs: FieldRef<"Product", 'Json'>
+    readonly unitsPerPack: FieldRef<"Product", 'Int'>
     readonly priceCents: FieldRef<"Product", 'Int'>
     readonly imageUrl: FieldRef<"Product", 'String'>
     readonly imageAlt: FieldRef<"Product", 'String'>
@@ -3541,6 +3565,9 @@ export namespace Prisma {
     discountCents: number | null
     deliveryFeeCents: number | null
     totalCents: number | null
+    deliveryMethod: $Enums.DeliveryMethod | null
+    deliverySlotStart: Date | null
+    deliverySlotEnd: Date | null
     contactName: string | null
     contactEmail: string | null
     contactPhone: string | null
@@ -3566,6 +3593,9 @@ export namespace Prisma {
     discountCents: number | null
     deliveryFeeCents: number | null
     totalCents: number | null
+    deliveryMethod: $Enums.DeliveryMethod | null
+    deliverySlotStart: Date | null
+    deliverySlotEnd: Date | null
     contactName: string | null
     contactEmail: string | null
     contactPhone: string | null
@@ -3591,6 +3621,9 @@ export namespace Prisma {
     discountCents: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod: number
+    deliverySlotStart: number
+    deliverySlotEnd: number
     contactName: number
     contactEmail: number
     contactPhone: number
@@ -3632,6 +3665,9 @@ export namespace Prisma {
     discountCents?: true
     deliveryFeeCents?: true
     totalCents?: true
+    deliveryMethod?: true
+    deliverySlotStart?: true
+    deliverySlotEnd?: true
     contactName?: true
     contactEmail?: true
     contactPhone?: true
@@ -3657,6 +3693,9 @@ export namespace Prisma {
     discountCents?: true
     deliveryFeeCents?: true
     totalCents?: true
+    deliveryMethod?: true
+    deliverySlotStart?: true
+    deliverySlotEnd?: true
     contactName?: true
     contactEmail?: true
     contactPhone?: true
@@ -3682,6 +3721,9 @@ export namespace Prisma {
     discountCents?: true
     deliveryFeeCents?: true
     totalCents?: true
+    deliveryMethod?: true
+    deliverySlotStart?: true
+    deliverySlotEnd?: true
     contactName?: true
     contactEmail?: true
     contactPhone?: true
@@ -3794,6 +3836,9 @@ export namespace Prisma {
     discountCents: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod: $Enums.DeliveryMethod
+    deliverySlotStart: Date | null
+    deliverySlotEnd: Date | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -3838,6 +3883,9 @@ export namespace Prisma {
     discountCents?: boolean
     deliveryFeeCents?: boolean
     totalCents?: boolean
+    deliveryMethod?: boolean
+    deliverySlotStart?: boolean
+    deliverySlotEnd?: boolean
     contactName?: boolean
     contactEmail?: boolean
     contactPhone?: boolean
@@ -3870,6 +3918,9 @@ export namespace Prisma {
     discountCents?: boolean
     deliveryFeeCents?: boolean
     totalCents?: boolean
+    deliveryMethod?: boolean
+    deliverySlotStart?: boolean
+    deliverySlotEnd?: boolean
     contactName?: boolean
     contactEmail?: boolean
     contactPhone?: boolean
@@ -3896,6 +3947,9 @@ export namespace Prisma {
     discountCents?: boolean
     deliveryFeeCents?: boolean
     totalCents?: boolean
+    deliveryMethod?: boolean
+    deliverySlotStart?: boolean
+    deliverySlotEnd?: boolean
     contactName?: boolean
     contactEmail?: boolean
     contactPhone?: boolean
@@ -3922,6 +3976,9 @@ export namespace Prisma {
     discountCents?: boolean
     deliveryFeeCents?: boolean
     totalCents?: boolean
+    deliveryMethod?: boolean
+    deliverySlotStart?: boolean
+    deliverySlotEnd?: boolean
     contactName?: boolean
     contactEmail?: boolean
     contactPhone?: boolean
@@ -3939,7 +3996,7 @@ export namespace Prisma {
     cancelledAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "reference" | "orderStatus" | "subtotalCents" | "discountCents" | "deliveryFeeCents" | "totalCents" | "contactName" | "contactEmail" | "contactPhone" | "addressLine1" | "addressLine2" | "postalCode" | "instructions" | "normalisedEmail" | "normalisedPhone" | "discountCodeId" | "reviewReason" | "createdAt" | "updatedAt" | "paidAt" | "cancelledAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "reference" | "orderStatus" | "subtotalCents" | "discountCents" | "deliveryFeeCents" | "totalCents" | "deliveryMethod" | "deliverySlotStart" | "deliverySlotEnd" | "contactName" | "contactEmail" | "contactPhone" | "addressLine1" | "addressLine2" | "postalCode" | "instructions" | "normalisedEmail" | "normalisedPhone" | "discountCodeId" | "reviewReason" | "createdAt" | "updatedAt" | "paidAt" | "cancelledAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     discountCode?: boolean | Order$discountCodeArgs<ExtArgs>
     items?: boolean | Order$itemsArgs<ExtArgs>
@@ -3974,6 +4031,12 @@ export namespace Prisma {
       discountCents: number
       deliveryFeeCents: number
       totalCents: number
+      /**
+       * Chosen speed and the slot the customer booked (§07).
+       */
+      deliveryMethod: $Enums.DeliveryMethod
+      deliverySlotStart: Date | null
+      deliverySlotEnd: Date | null
       contactName: string
       contactEmail: string
       contactPhone: string
@@ -4425,6 +4488,9 @@ export namespace Prisma {
     readonly discountCents: FieldRef<"Order", 'Int'>
     readonly deliveryFeeCents: FieldRef<"Order", 'Int'>
     readonly totalCents: FieldRef<"Order", 'Int'>
+    readonly deliveryMethod: FieldRef<"Order", 'DeliveryMethod'>
+    readonly deliverySlotStart: FieldRef<"Order", 'DateTime'>
+    readonly deliverySlotEnd: FieldRef<"Order", 'DateTime'>
     readonly contactName: FieldRef<"Order", 'String'>
     readonly contactEmail: FieldRef<"Order", 'String'>
     readonly contactPhone: FieldRef<"Order", 'String'>
@@ -6171,6 +6237,8 @@ export namespace Prisma {
     paymentStatus: $Enums.PaymentStatus | null
     method: string | null
     checkoutUrl: string | null
+    receiptSentAt: Date | null
+    notifiedAt: Date | null
     refundedCents: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6189,6 +6257,8 @@ export namespace Prisma {
     paymentStatus: $Enums.PaymentStatus | null
     method: string | null
     checkoutUrl: string | null
+    receiptSentAt: Date | null
+    notifiedAt: Date | null
     refundedCents: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6207,6 +6277,8 @@ export namespace Prisma {
     paymentStatus: number
     method: number
     checkoutUrl: number
+    receiptSentAt: number
+    notifiedAt: number
     refundedCents: number
     createdAt: number
     updatedAt: number
@@ -6237,6 +6309,8 @@ export namespace Prisma {
     paymentStatus?: true
     method?: true
     checkoutUrl?: true
+    receiptSentAt?: true
+    notifiedAt?: true
     refundedCents?: true
     createdAt?: true
     updatedAt?: true
@@ -6255,6 +6329,8 @@ export namespace Prisma {
     paymentStatus?: true
     method?: true
     checkoutUrl?: true
+    receiptSentAt?: true
+    notifiedAt?: true
     refundedCents?: true
     createdAt?: true
     updatedAt?: true
@@ -6273,6 +6349,8 @@ export namespace Prisma {
     paymentStatus?: true
     method?: true
     checkoutUrl?: true
+    receiptSentAt?: true
+    notifiedAt?: true
     refundedCents?: true
     createdAt?: true
     updatedAt?: true
@@ -6378,6 +6456,8 @@ export namespace Prisma {
     paymentStatus: $Enums.PaymentStatus
     method: string | null
     checkoutUrl: string | null
+    receiptSentAt: Date | null
+    notifiedAt: Date | null
     refundedCents: number
     createdAt: Date
     updatedAt: Date
@@ -6415,6 +6495,8 @@ export namespace Prisma {
     paymentStatus?: boolean
     method?: boolean
     checkoutUrl?: boolean
+    receiptSentAt?: boolean
+    notifiedAt?: boolean
     refundedCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6434,6 +6516,8 @@ export namespace Prisma {
     paymentStatus?: boolean
     method?: boolean
     checkoutUrl?: boolean
+    receiptSentAt?: boolean
+    notifiedAt?: boolean
     refundedCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6453,6 +6537,8 @@ export namespace Prisma {
     paymentStatus?: boolean
     method?: boolean
     checkoutUrl?: boolean
+    receiptSentAt?: boolean
+    notifiedAt?: boolean
     refundedCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6472,6 +6558,8 @@ export namespace Prisma {
     paymentStatus?: boolean
     method?: boolean
     checkoutUrl?: boolean
+    receiptSentAt?: boolean
+    notifiedAt?: boolean
     refundedCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6479,7 +6567,7 @@ export namespace Prisma {
     refundedAt?: boolean
   }
 
-  export type PaymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "provider" | "requestId" | "paymentId" | "amountCents" | "currency" | "paymentStatus" | "method" | "checkoutUrl" | "refundedCents" | "createdAt" | "updatedAt" | "paidAt" | "refundedAt", ExtArgs["result"]["payment"]>
+  export type PaymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "provider" | "requestId" | "paymentId" | "amountCents" | "currency" | "paymentStatus" | "method" | "checkoutUrl" | "receiptSentAt" | "notifiedAt" | "refundedCents" | "createdAt" | "updatedAt" | "paidAt" | "refundedAt", ExtArgs["result"]["payment"]>
   export type PaymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }
@@ -6499,13 +6587,31 @@ export namespace Prisma {
       id: string
       orderId: string
       provider: string
+      /**
+       * Stripe PaymentIntent id (pi_...). One per order.
+       */
       requestId: string
+      /**
+       * Stripe Charge id (ch_...), known only once the PaymentIntent succeeds.
+       */
       paymentId: string | null
       amountCents: number
       currency: string
       paymentStatus: $Enums.PaymentStatus
       method: string | null
+      /**
+       * Stripe-hosted next-action URL (the PayNow QR page).
+       */
       checkoutUrl: string | null
+      /**
+       * Set once the customer receipt has been emailed, so a replayed webhook
+       * cannot send a second invoice.
+       */
+      receiptSentAt: Date | null
+      /**
+       * Set once the business WhatsApp notification has been delivered.
+       */
+      notifiedAt: Date | null
       refundedCents: number
       createdAt: Date
       updatedAt: Date
@@ -6945,6 +7051,8 @@ export namespace Prisma {
     readonly paymentStatus: FieldRef<"Payment", 'PaymentStatus'>
     readonly method: FieldRef<"Payment", 'String'>
     readonly checkoutUrl: FieldRef<"Payment", 'String'>
+    readonly receiptSentAt: FieldRef<"Payment", 'DateTime'>
+    readonly notifiedAt: FieldRef<"Payment", 'DateTime'>
     readonly refundedCents: FieldRef<"Payment", 'Int'>
     readonly createdAt: FieldRef<"Payment", 'DateTime'>
     readonly updatedAt: FieldRef<"Payment", 'DateTime'>
@@ -7377,144 +7485,104 @@ export namespace Prisma {
   }
 
   export type DeliveryAvgAggregateOutputType = {
-    estimatedCostCents: number | null
     actualCostCents: number | null
-    attempts: number | null
   }
 
   export type DeliverySumAggregateOutputType = {
-    estimatedCostCents: number | null
     actualCostCents: number | null
-    attempts: number | null
   }
 
   export type DeliveryMinAggregateOutputType = {
     id: string | null
     orderId: string | null
-    provider: $Enums.DeliveryProvider | null
-    providerRef: string | null
-    quotationId: string | null
-    estimatedCostCents: number | null
-    actualCostCents: number | null
     deliveryStatus: $Enums.DeliveryStatus | null
-    trackingUrl: string | null
+    courierRef: string | null
+    actualCostCents: number | null
+    notes: string | null
     failureReason: string | null
-    attempts: number | null
-    nextAttemptAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
-    bookedAt: Date | null
+    dispatchedAt: Date | null
     deliveredAt: Date | null
   }
 
   export type DeliveryMaxAggregateOutputType = {
     id: string | null
     orderId: string | null
-    provider: $Enums.DeliveryProvider | null
-    providerRef: string | null
-    quotationId: string | null
-    estimatedCostCents: number | null
-    actualCostCents: number | null
     deliveryStatus: $Enums.DeliveryStatus | null
-    trackingUrl: string | null
+    courierRef: string | null
+    actualCostCents: number | null
+    notes: string | null
     failureReason: string | null
-    attempts: number | null
-    nextAttemptAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
-    bookedAt: Date | null
+    dispatchedAt: Date | null
     deliveredAt: Date | null
   }
 
   export type DeliveryCountAggregateOutputType = {
     id: number
     orderId: number
-    provider: number
-    providerRef: number
-    quotationId: number
-    estimatedCostCents: number
-    actualCostCents: number
     deliveryStatus: number
-    driver: number
-    trackingUrl: number
+    courierRef: number
+    actualCostCents: number
+    notes: number
     failureReason: number
-    attempts: number
-    nextAttemptAt: number
     createdAt: number
     updatedAt: number
-    bookedAt: number
+    dispatchedAt: number
     deliveredAt: number
     _all: number
   }
 
 
   export type DeliveryAvgAggregateInputType = {
-    estimatedCostCents?: true
     actualCostCents?: true
-    attempts?: true
   }
 
   export type DeliverySumAggregateInputType = {
-    estimatedCostCents?: true
     actualCostCents?: true
-    attempts?: true
   }
 
   export type DeliveryMinAggregateInputType = {
     id?: true
     orderId?: true
-    provider?: true
-    providerRef?: true
-    quotationId?: true
-    estimatedCostCents?: true
-    actualCostCents?: true
     deliveryStatus?: true
-    trackingUrl?: true
+    courierRef?: true
+    actualCostCents?: true
+    notes?: true
     failureReason?: true
-    attempts?: true
-    nextAttemptAt?: true
     createdAt?: true
     updatedAt?: true
-    bookedAt?: true
+    dispatchedAt?: true
     deliveredAt?: true
   }
 
   export type DeliveryMaxAggregateInputType = {
     id?: true
     orderId?: true
-    provider?: true
-    providerRef?: true
-    quotationId?: true
-    estimatedCostCents?: true
-    actualCostCents?: true
     deliveryStatus?: true
-    trackingUrl?: true
+    courierRef?: true
+    actualCostCents?: true
+    notes?: true
     failureReason?: true
-    attempts?: true
-    nextAttemptAt?: true
     createdAt?: true
     updatedAt?: true
-    bookedAt?: true
+    dispatchedAt?: true
     deliveredAt?: true
   }
 
   export type DeliveryCountAggregateInputType = {
     id?: true
     orderId?: true
-    provider?: true
-    providerRef?: true
-    quotationId?: true
-    estimatedCostCents?: true
-    actualCostCents?: true
     deliveryStatus?: true
-    driver?: true
-    trackingUrl?: true
+    courierRef?: true
+    actualCostCents?: true
+    notes?: true
     failureReason?: true
-    attempts?: true
-    nextAttemptAt?: true
     createdAt?: true
     updatedAt?: true
-    bookedAt?: true
+    dispatchedAt?: true
     deliveredAt?: true
     _all?: true
   }
@@ -7608,20 +7676,14 @@ export namespace Prisma {
   export type DeliveryGroupByOutputType = {
     id: string
     orderId: string
-    provider: $Enums.DeliveryProvider
-    providerRef: string | null
-    quotationId: string | null
-    estimatedCostCents: number | null
-    actualCostCents: number | null
     deliveryStatus: $Enums.DeliveryStatus
-    driver: JsonValue | null
-    trackingUrl: string | null
+    courierRef: string | null
+    actualCostCents: number | null
+    notes: string | null
     failureReason: string | null
-    attempts: number
-    nextAttemptAt: Date | null
     createdAt: Date
     updatedAt: Date
-    bookedAt: Date | null
+    dispatchedAt: Date | null
     deliveredAt: Date | null
     _count: DeliveryCountAggregateOutputType | null
     _avg: DeliveryAvgAggregateOutputType | null
@@ -7647,20 +7709,14 @@ export namespace Prisma {
   export type DeliverySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     orderId?: boolean
-    provider?: boolean
-    providerRef?: boolean
-    quotationId?: boolean
-    estimatedCostCents?: boolean
-    actualCostCents?: boolean
     deliveryStatus?: boolean
-    driver?: boolean
-    trackingUrl?: boolean
+    courierRef?: boolean
+    actualCostCents?: boolean
+    notes?: boolean
     failureReason?: boolean
-    attempts?: boolean
-    nextAttemptAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    bookedAt?: boolean
+    dispatchedAt?: boolean
     deliveredAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["delivery"]>
@@ -7668,20 +7724,14 @@ export namespace Prisma {
   export type DeliverySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     orderId?: boolean
-    provider?: boolean
-    providerRef?: boolean
-    quotationId?: boolean
-    estimatedCostCents?: boolean
-    actualCostCents?: boolean
     deliveryStatus?: boolean
-    driver?: boolean
-    trackingUrl?: boolean
+    courierRef?: boolean
+    actualCostCents?: boolean
+    notes?: boolean
     failureReason?: boolean
-    attempts?: boolean
-    nextAttemptAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    bookedAt?: boolean
+    dispatchedAt?: boolean
     deliveredAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["delivery"]>
@@ -7689,20 +7739,14 @@ export namespace Prisma {
   export type DeliverySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     orderId?: boolean
-    provider?: boolean
-    providerRef?: boolean
-    quotationId?: boolean
-    estimatedCostCents?: boolean
-    actualCostCents?: boolean
     deliveryStatus?: boolean
-    driver?: boolean
-    trackingUrl?: boolean
+    courierRef?: boolean
+    actualCostCents?: boolean
+    notes?: boolean
     failureReason?: boolean
-    attempts?: boolean
-    nextAttemptAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    bookedAt?: boolean
+    dispatchedAt?: boolean
     deliveredAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["delivery"]>
@@ -7710,24 +7754,18 @@ export namespace Prisma {
   export type DeliverySelectScalar = {
     id?: boolean
     orderId?: boolean
-    provider?: boolean
-    providerRef?: boolean
-    quotationId?: boolean
-    estimatedCostCents?: boolean
-    actualCostCents?: boolean
     deliveryStatus?: boolean
-    driver?: boolean
-    trackingUrl?: boolean
+    courierRef?: boolean
+    actualCostCents?: boolean
+    notes?: boolean
     failureReason?: boolean
-    attempts?: boolean
-    nextAttemptAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    bookedAt?: boolean
+    dispatchedAt?: boolean
     deliveredAt?: boolean
   }
 
-  export type DeliveryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "provider" | "providerRef" | "quotationId" | "estimatedCostCents" | "actualCostCents" | "deliveryStatus" | "driver" | "trackingUrl" | "failureReason" | "attempts" | "nextAttemptAt" | "createdAt" | "updatedAt" | "bookedAt" | "deliveredAt", ExtArgs["result"]["delivery"]>
+  export type DeliveryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "deliveryStatus" | "courierRef" | "actualCostCents" | "notes" | "failureReason" | "createdAt" | "updatedAt" | "dispatchedAt" | "deliveredAt", ExtArgs["result"]["delivery"]>
   export type DeliveryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }
@@ -7746,20 +7784,21 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       orderId: string
-      provider: $Enums.DeliveryProvider
-      providerRef: string | null
-      quotationId: string | null
-      estimatedCostCents: number | null
-      actualCostCents: number | null
       deliveryStatus: $Enums.DeliveryStatus
-      driver: Prisma.JsonValue | null
-      trackingUrl: string | null
+      /**
+       * Free text: courier name, plate, own-van driver, anything useful.
+       */
+      courierRef: string | null
+      /**
+       * Internal cost, never shown to the customer and never substituted into
+       * what they were charged (§7.5).
+       */
+      actualCostCents: number | null
+      notes: string | null
       failureReason: string | null
-      attempts: number
-      nextAttemptAt: Date | null
       createdAt: Date
       updatedAt: Date
-      bookedAt: Date | null
+      dispatchedAt: Date | null
       deliveredAt: Date | null
     }, ExtArgs["result"]["delivery"]>
     composites: {}
@@ -8187,20 +8226,14 @@ export namespace Prisma {
   interface DeliveryFieldRefs {
     readonly id: FieldRef<"Delivery", 'String'>
     readonly orderId: FieldRef<"Delivery", 'String'>
-    readonly provider: FieldRef<"Delivery", 'DeliveryProvider'>
-    readonly providerRef: FieldRef<"Delivery", 'String'>
-    readonly quotationId: FieldRef<"Delivery", 'String'>
-    readonly estimatedCostCents: FieldRef<"Delivery", 'Int'>
-    readonly actualCostCents: FieldRef<"Delivery", 'Int'>
     readonly deliveryStatus: FieldRef<"Delivery", 'DeliveryStatus'>
-    readonly driver: FieldRef<"Delivery", 'Json'>
-    readonly trackingUrl: FieldRef<"Delivery", 'String'>
+    readonly courierRef: FieldRef<"Delivery", 'String'>
+    readonly actualCostCents: FieldRef<"Delivery", 'Int'>
+    readonly notes: FieldRef<"Delivery", 'String'>
     readonly failureReason: FieldRef<"Delivery", 'String'>
-    readonly attempts: FieldRef<"Delivery", 'Int'>
-    readonly nextAttemptAt: FieldRef<"Delivery", 'DateTime'>
     readonly createdAt: FieldRef<"Delivery", 'DateTime'>
     readonly updatedAt: FieldRef<"Delivery", 'DateTime'>
-    readonly bookedAt: FieldRef<"Delivery", 'DateTime'>
+    readonly dispatchedAt: FieldRef<"Delivery", 'DateTime'>
     readonly deliveredAt: FieldRef<"Delivery", 'DateTime'>
   }
     
@@ -8654,6 +8687,7 @@ export namespace Prisma {
     maxUses: number | null
     usesCount: number | null
     attributionLabel: string | null
+    seasonLabel: string | null
     isActive: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -8671,6 +8705,7 @@ export namespace Prisma {
     maxUses: number | null
     usesCount: number | null
     attributionLabel: string | null
+    seasonLabel: string | null
     isActive: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -8688,6 +8723,7 @@ export namespace Prisma {
     maxUses: number
     usesCount: number
     attributionLabel: number
+    seasonLabel: number
     isActive: number
     createdAt: number
     updatedAt: number
@@ -8721,6 +8757,7 @@ export namespace Prisma {
     maxUses?: true
     usesCount?: true
     attributionLabel?: true
+    seasonLabel?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -8738,6 +8775,7 @@ export namespace Prisma {
     maxUses?: true
     usesCount?: true
     attributionLabel?: true
+    seasonLabel?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -8755,6 +8793,7 @@ export namespace Prisma {
     maxUses?: true
     usesCount?: true
     attributionLabel?: true
+    seasonLabel?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -8859,6 +8898,7 @@ export namespace Prisma {
     maxUses: number | null
     usesCount: number
     attributionLabel: string | null
+    seasonLabel: string | null
     isActive: boolean
     createdAt: Date
     updatedAt: Date
@@ -8895,6 +8935,7 @@ export namespace Prisma {
     maxUses?: boolean
     usesCount?: boolean
     attributionLabel?: boolean
+    seasonLabel?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8915,6 +8956,7 @@ export namespace Prisma {
     maxUses?: boolean
     usesCount?: boolean
     attributionLabel?: boolean
+    seasonLabel?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8932,6 +8974,7 @@ export namespace Prisma {
     maxUses?: boolean
     usesCount?: boolean
     attributionLabel?: boolean
+    seasonLabel?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8949,12 +8992,13 @@ export namespace Prisma {
     maxUses?: boolean
     usesCount?: boolean
     attributionLabel?: boolean
+    seasonLabel?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type DiscountCodeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "valueType" | "percentOff" | "valueCents" | "limitType" | "startsAt" | "expiresAt" | "maxUses" | "usesCount" | "attributionLabel" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["discountCode"]>
+  export type DiscountCodeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "valueType" | "percentOff" | "valueCents" | "limitType" | "startsAt" | "expiresAt" | "maxUses" | "usesCount" | "attributionLabel" | "seasonLabel" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["discountCode"]>
   export type DiscountCodeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     orders?: boolean | DiscountCode$ordersArgs<ExtArgs>
     redemptions?: boolean | DiscountCode$redemptionsArgs<ExtArgs>
@@ -8981,6 +9025,10 @@ export namespace Prisma {
       maxUses: number | null
       usesCount: number
       attributionLabel: string | null
+      /**
+       * Human name for a seasonal campaign, e.g. "Christmas 2026".
+       */
+      seasonLabel: string | null
       isActive: boolean
       createdAt: Date
       updatedAt: Date
@@ -9420,6 +9468,7 @@ export namespace Prisma {
     readonly maxUses: FieldRef<"DiscountCode", 'Int'>
     readonly usesCount: FieldRef<"DiscountCode", 'Int'>
     readonly attributionLabel: FieldRef<"DiscountCode", 'String'>
+    readonly seasonLabel: FieldRef<"DiscountCode", 'String'>
     readonly isActive: FieldRef<"DiscountCode", 'Boolean'>
     readonly createdAt: FieldRef<"DiscountCode", 'DateTime'>
     readonly updatedAt: FieldRef<"DiscountCode", 'DateTime'>
@@ -17413,6 +17462,7 @@ export namespace Prisma {
     cardLabel: 'cardLabel',
     description: 'description',
     specs: 'specs',
+    unitsPerPack: 'unitsPerPack',
     priceCents: 'priceCents',
     imageUrl: 'imageUrl',
     imageAlt: 'imageAlt',
@@ -17435,6 +17485,9 @@ export namespace Prisma {
     discountCents: 'discountCents',
     deliveryFeeCents: 'deliveryFeeCents',
     totalCents: 'totalCents',
+    deliveryMethod: 'deliveryMethod',
+    deliverySlotStart: 'deliverySlotStart',
+    deliverySlotEnd: 'deliverySlotEnd',
     contactName: 'contactName',
     contactEmail: 'contactEmail',
     contactPhone: 'contactPhone',
@@ -17481,6 +17534,8 @@ export namespace Prisma {
     paymentStatus: 'paymentStatus',
     method: 'method',
     checkoutUrl: 'checkoutUrl',
+    receiptSentAt: 'receiptSentAt',
+    notifiedAt: 'notifiedAt',
     refundedCents: 'refundedCents',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
@@ -17494,20 +17549,14 @@ export namespace Prisma {
   export const DeliveryScalarFieldEnum: {
     id: 'id',
     orderId: 'orderId',
-    provider: 'provider',
-    providerRef: 'providerRef',
-    quotationId: 'quotationId',
-    estimatedCostCents: 'estimatedCostCents',
-    actualCostCents: 'actualCostCents',
     deliveryStatus: 'deliveryStatus',
-    driver: 'driver',
-    trackingUrl: 'trackingUrl',
+    courierRef: 'courierRef',
+    actualCostCents: 'actualCostCents',
+    notes: 'notes',
     failureReason: 'failureReason',
-    attempts: 'attempts',
-    nextAttemptAt: 'nextAttemptAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
-    bookedAt: 'bookedAt',
+    dispatchedAt: 'dispatchedAt',
     deliveredAt: 'deliveredAt'
   };
 
@@ -17526,6 +17575,7 @@ export namespace Prisma {
     maxUses: 'maxUses',
     usesCount: 'usesCount',
     attributionLabel: 'attributionLabel',
+    seasonLabel: 'seasonLabel',
     isActive: 'isActive',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -17774,6 +17824,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'DeliveryMethod'
+   */
+  export type EnumDeliveryMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DeliveryMethod'>
+    
+
+
+  /**
+   * Reference to a field of type 'DeliveryMethod[]'
+   */
+  export type ListEnumDeliveryMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DeliveryMethod[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PaymentStatus'
    */
   export type EnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus'>
@@ -17784,20 +17848,6 @@ export namespace Prisma {
    * Reference to a field of type 'PaymentStatus[]'
    */
   export type ListEnumPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'DeliveryProvider'
-   */
-  export type EnumDeliveryProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DeliveryProvider'>
-    
-
-
-  /**
-   * Reference to a field of type 'DeliveryProvider[]'
-   */
-  export type ListEnumDeliveryProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DeliveryProvider[]'>
     
 
 
@@ -17901,6 +17951,7 @@ export namespace Prisma {
     cardLabel?: StringNullableFilter<"Product"> | string | null
     description?: StringFilter<"Product"> | string
     specs?: JsonFilter<"Product">
+    unitsPerPack?: IntFilter<"Product"> | number
     priceCents?: IntFilter<"Product"> | number
     imageUrl?: StringNullableFilter<"Product"> | string | null
     imageAlt?: StringNullableFilter<"Product"> | string | null
@@ -17923,6 +17974,7 @@ export namespace Prisma {
     cardLabel?: SortOrderInput | SortOrder
     description?: SortOrder
     specs?: SortOrder
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrderInput | SortOrder
     imageAlt?: SortOrderInput | SortOrder
@@ -17948,6 +18000,7 @@ export namespace Prisma {
     cardLabel?: StringNullableFilter<"Product"> | string | null
     description?: StringFilter<"Product"> | string
     specs?: JsonFilter<"Product">
+    unitsPerPack?: IntFilter<"Product"> | number
     priceCents?: IntFilter<"Product"> | number
     imageUrl?: StringNullableFilter<"Product"> | string | null
     imageAlt?: StringNullableFilter<"Product"> | string | null
@@ -17970,6 +18023,7 @@ export namespace Prisma {
     cardLabel?: SortOrderInput | SortOrder
     description?: SortOrder
     specs?: SortOrder
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrderInput | SortOrder
     imageAlt?: SortOrderInput | SortOrder
@@ -17999,6 +18053,7 @@ export namespace Prisma {
     cardLabel?: StringNullableWithAggregatesFilter<"Product"> | string | null
     description?: StringWithAggregatesFilter<"Product"> | string
     specs?: JsonWithAggregatesFilter<"Product">
+    unitsPerPack?: IntWithAggregatesFilter<"Product"> | number
     priceCents?: IntWithAggregatesFilter<"Product"> | number
     imageUrl?: StringNullableWithAggregatesFilter<"Product"> | string | null
     imageAlt?: StringNullableWithAggregatesFilter<"Product"> | string | null
@@ -18021,6 +18076,9 @@ export namespace Prisma {
     discountCents?: IntFilter<"Order"> | number
     deliveryFeeCents?: IntFilter<"Order"> | number
     totalCents?: IntFilter<"Order"> | number
+    deliveryMethod?: EnumDeliveryMethodFilter<"Order"> | $Enums.DeliveryMethod
+    deliverySlotStart?: DateTimeNullableFilter<"Order"> | Date | string | null
+    deliverySlotEnd?: DateTimeNullableFilter<"Order"> | Date | string | null
     contactName?: StringFilter<"Order"> | string
     contactEmail?: StringFilter<"Order"> | string
     contactPhone?: StringFilter<"Order"> | string
@@ -18052,6 +18110,9 @@ export namespace Prisma {
     discountCents?: SortOrder
     deliveryFeeCents?: SortOrder
     totalCents?: SortOrder
+    deliveryMethod?: SortOrder
+    deliverySlotStart?: SortOrderInput | SortOrder
+    deliverySlotEnd?: SortOrderInput | SortOrder
     contactName?: SortOrder
     contactEmail?: SortOrder
     contactPhone?: SortOrder
@@ -18086,6 +18147,9 @@ export namespace Prisma {
     discountCents?: IntFilter<"Order"> | number
     deliveryFeeCents?: IntFilter<"Order"> | number
     totalCents?: IntFilter<"Order"> | number
+    deliveryMethod?: EnumDeliveryMethodFilter<"Order"> | $Enums.DeliveryMethod
+    deliverySlotStart?: DateTimeNullableFilter<"Order"> | Date | string | null
+    deliverySlotEnd?: DateTimeNullableFilter<"Order"> | Date | string | null
     contactName?: StringFilter<"Order"> | string
     contactEmail?: StringFilter<"Order"> | string
     contactPhone?: StringFilter<"Order"> | string
@@ -18117,6 +18181,9 @@ export namespace Prisma {
     discountCents?: SortOrder
     deliveryFeeCents?: SortOrder
     totalCents?: SortOrder
+    deliveryMethod?: SortOrder
+    deliverySlotStart?: SortOrderInput | SortOrder
+    deliverySlotEnd?: SortOrderInput | SortOrder
     contactName?: SortOrder
     contactEmail?: SortOrder
     contactPhone?: SortOrder
@@ -18150,6 +18217,9 @@ export namespace Prisma {
     discountCents?: IntWithAggregatesFilter<"Order"> | number
     deliveryFeeCents?: IntWithAggregatesFilter<"Order"> | number
     totalCents?: IntWithAggregatesFilter<"Order"> | number
+    deliveryMethod?: EnumDeliveryMethodWithAggregatesFilter<"Order"> | $Enums.DeliveryMethod
+    deliverySlotStart?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
+    deliverySlotEnd?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
     contactName?: StringWithAggregatesFilter<"Order"> | string
     contactEmail?: StringWithAggregatesFilter<"Order"> | string
     contactPhone?: StringWithAggregatesFilter<"Order"> | string
@@ -18261,6 +18331,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
     method?: StringNullableFilter<"Payment"> | string | null
     checkoutUrl?: StringNullableFilter<"Payment"> | string | null
+    receiptSentAt?: DateTimeNullableFilter<"Payment"> | Date | string | null
+    notifiedAt?: DateTimeNullableFilter<"Payment"> | Date | string | null
     refundedCents?: IntFilter<"Payment"> | number
     createdAt?: DateTimeFilter<"Payment"> | Date | string
     updatedAt?: DateTimeFilter<"Payment"> | Date | string
@@ -18280,6 +18352,8 @@ export namespace Prisma {
     paymentStatus?: SortOrder
     method?: SortOrderInput | SortOrder
     checkoutUrl?: SortOrderInput | SortOrder
+    receiptSentAt?: SortOrderInput | SortOrder
+    notifiedAt?: SortOrderInput | SortOrder
     refundedCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -18302,6 +18376,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFilter<"Payment"> | $Enums.PaymentStatus
     method?: StringNullableFilter<"Payment"> | string | null
     checkoutUrl?: StringNullableFilter<"Payment"> | string | null
+    receiptSentAt?: DateTimeNullableFilter<"Payment"> | Date | string | null
+    notifiedAt?: DateTimeNullableFilter<"Payment"> | Date | string | null
     refundedCents?: IntFilter<"Payment"> | number
     createdAt?: DateTimeFilter<"Payment"> | Date | string
     updatedAt?: DateTimeFilter<"Payment"> | Date | string
@@ -18321,6 +18397,8 @@ export namespace Prisma {
     paymentStatus?: SortOrder
     method?: SortOrderInput | SortOrder
     checkoutUrl?: SortOrderInput | SortOrder
+    receiptSentAt?: SortOrderInput | SortOrder
+    notifiedAt?: SortOrderInput | SortOrder
     refundedCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -18347,6 +18425,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusWithAggregatesFilter<"Payment"> | $Enums.PaymentStatus
     method?: StringNullableWithAggregatesFilter<"Payment"> | string | null
     checkoutUrl?: StringNullableWithAggregatesFilter<"Payment"> | string | null
+    receiptSentAt?: DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
+    notifiedAt?: DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
     refundedCents?: IntWithAggregatesFilter<"Payment"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Payment"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Payment"> | Date | string
@@ -18360,20 +18440,14 @@ export namespace Prisma {
     NOT?: DeliveryWhereInput | DeliveryWhereInput[]
     id?: UuidFilter<"Delivery"> | string
     orderId?: UuidFilter<"Delivery"> | string
-    provider?: EnumDeliveryProviderFilter<"Delivery"> | $Enums.DeliveryProvider
-    providerRef?: StringNullableFilter<"Delivery"> | string | null
-    quotationId?: StringNullableFilter<"Delivery"> | string | null
-    estimatedCostCents?: IntNullableFilter<"Delivery"> | number | null
-    actualCostCents?: IntNullableFilter<"Delivery"> | number | null
     deliveryStatus?: EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
-    driver?: JsonNullableFilter<"Delivery">
-    trackingUrl?: StringNullableFilter<"Delivery"> | string | null
+    courierRef?: StringNullableFilter<"Delivery"> | string | null
+    actualCostCents?: IntNullableFilter<"Delivery"> | number | null
+    notes?: StringNullableFilter<"Delivery"> | string | null
     failureReason?: StringNullableFilter<"Delivery"> | string | null
-    attempts?: IntFilter<"Delivery"> | number
-    nextAttemptAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
     createdAt?: DateTimeFilter<"Delivery"> | Date | string
     updatedAt?: DateTimeFilter<"Delivery"> | Date | string
-    bookedAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
+    dispatchedAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
     deliveredAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
   }
@@ -18381,20 +18455,14 @@ export namespace Prisma {
   export type DeliveryOrderByWithRelationInput = {
     id?: SortOrder
     orderId?: SortOrder
-    provider?: SortOrder
-    providerRef?: SortOrderInput | SortOrder
-    quotationId?: SortOrderInput | SortOrder
-    estimatedCostCents?: SortOrderInput | SortOrder
-    actualCostCents?: SortOrderInput | SortOrder
     deliveryStatus?: SortOrder
-    driver?: SortOrderInput | SortOrder
-    trackingUrl?: SortOrderInput | SortOrder
+    courierRef?: SortOrderInput | SortOrder
+    actualCostCents?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
     failureReason?: SortOrderInput | SortOrder
-    attempts?: SortOrder
-    nextAttemptAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    bookedAt?: SortOrderInput | SortOrder
+    dispatchedAt?: SortOrderInput | SortOrder
     deliveredAt?: SortOrderInput | SortOrder
     order?: OrderOrderByWithRelationInput
   }
@@ -18405,20 +18473,14 @@ export namespace Prisma {
     AND?: DeliveryWhereInput | DeliveryWhereInput[]
     OR?: DeliveryWhereInput[]
     NOT?: DeliveryWhereInput | DeliveryWhereInput[]
-    provider?: EnumDeliveryProviderFilter<"Delivery"> | $Enums.DeliveryProvider
-    providerRef?: StringNullableFilter<"Delivery"> | string | null
-    quotationId?: StringNullableFilter<"Delivery"> | string | null
-    estimatedCostCents?: IntNullableFilter<"Delivery"> | number | null
-    actualCostCents?: IntNullableFilter<"Delivery"> | number | null
     deliveryStatus?: EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
-    driver?: JsonNullableFilter<"Delivery">
-    trackingUrl?: StringNullableFilter<"Delivery"> | string | null
+    courierRef?: StringNullableFilter<"Delivery"> | string | null
+    actualCostCents?: IntNullableFilter<"Delivery"> | number | null
+    notes?: StringNullableFilter<"Delivery"> | string | null
     failureReason?: StringNullableFilter<"Delivery"> | string | null
-    attempts?: IntFilter<"Delivery"> | number
-    nextAttemptAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
     createdAt?: DateTimeFilter<"Delivery"> | Date | string
     updatedAt?: DateTimeFilter<"Delivery"> | Date | string
-    bookedAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
+    dispatchedAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
     deliveredAt?: DateTimeNullableFilter<"Delivery"> | Date | string | null
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
   }, "id" | "orderId">
@@ -18426,20 +18488,14 @@ export namespace Prisma {
   export type DeliveryOrderByWithAggregationInput = {
     id?: SortOrder
     orderId?: SortOrder
-    provider?: SortOrder
-    providerRef?: SortOrderInput | SortOrder
-    quotationId?: SortOrderInput | SortOrder
-    estimatedCostCents?: SortOrderInput | SortOrder
-    actualCostCents?: SortOrderInput | SortOrder
     deliveryStatus?: SortOrder
-    driver?: SortOrderInput | SortOrder
-    trackingUrl?: SortOrderInput | SortOrder
+    courierRef?: SortOrderInput | SortOrder
+    actualCostCents?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
     failureReason?: SortOrderInput | SortOrder
-    attempts?: SortOrder
-    nextAttemptAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    bookedAt?: SortOrderInput | SortOrder
+    dispatchedAt?: SortOrderInput | SortOrder
     deliveredAt?: SortOrderInput | SortOrder
     _count?: DeliveryCountOrderByAggregateInput
     _avg?: DeliveryAvgOrderByAggregateInput
@@ -18454,20 +18510,14 @@ export namespace Prisma {
     NOT?: DeliveryScalarWhereWithAggregatesInput | DeliveryScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"Delivery"> | string
     orderId?: UuidWithAggregatesFilter<"Delivery"> | string
-    provider?: EnumDeliveryProviderWithAggregatesFilter<"Delivery"> | $Enums.DeliveryProvider
-    providerRef?: StringNullableWithAggregatesFilter<"Delivery"> | string | null
-    quotationId?: StringNullableWithAggregatesFilter<"Delivery"> | string | null
-    estimatedCostCents?: IntNullableWithAggregatesFilter<"Delivery"> | number | null
-    actualCostCents?: IntNullableWithAggregatesFilter<"Delivery"> | number | null
     deliveryStatus?: EnumDeliveryStatusWithAggregatesFilter<"Delivery"> | $Enums.DeliveryStatus
-    driver?: JsonNullableWithAggregatesFilter<"Delivery">
-    trackingUrl?: StringNullableWithAggregatesFilter<"Delivery"> | string | null
+    courierRef?: StringNullableWithAggregatesFilter<"Delivery"> | string | null
+    actualCostCents?: IntNullableWithAggregatesFilter<"Delivery"> | number | null
+    notes?: StringNullableWithAggregatesFilter<"Delivery"> | string | null
     failureReason?: StringNullableWithAggregatesFilter<"Delivery"> | string | null
-    attempts?: IntWithAggregatesFilter<"Delivery"> | number
-    nextAttemptAt?: DateTimeNullableWithAggregatesFilter<"Delivery"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Delivery"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Delivery"> | Date | string
-    bookedAt?: DateTimeNullableWithAggregatesFilter<"Delivery"> | Date | string | null
+    dispatchedAt?: DateTimeNullableWithAggregatesFilter<"Delivery"> | Date | string | null
     deliveredAt?: DateTimeNullableWithAggregatesFilter<"Delivery"> | Date | string | null
   }
 
@@ -18486,6 +18536,7 @@ export namespace Prisma {
     maxUses?: IntNullableFilter<"DiscountCode"> | number | null
     usesCount?: IntFilter<"DiscountCode"> | number
     attributionLabel?: StringNullableFilter<"DiscountCode"> | string | null
+    seasonLabel?: StringNullableFilter<"DiscountCode"> | string | null
     isActive?: BoolFilter<"DiscountCode"> | boolean
     createdAt?: DateTimeFilter<"DiscountCode"> | Date | string
     updatedAt?: DateTimeFilter<"DiscountCode"> | Date | string
@@ -18505,6 +18556,7 @@ export namespace Prisma {
     maxUses?: SortOrderInput | SortOrder
     usesCount?: SortOrder
     attributionLabel?: SortOrderInput | SortOrder
+    seasonLabel?: SortOrderInput | SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -18527,6 +18579,7 @@ export namespace Prisma {
     maxUses?: IntNullableFilter<"DiscountCode"> | number | null
     usesCount?: IntFilter<"DiscountCode"> | number
     attributionLabel?: StringNullableFilter<"DiscountCode"> | string | null
+    seasonLabel?: StringNullableFilter<"DiscountCode"> | string | null
     isActive?: BoolFilter<"DiscountCode"> | boolean
     createdAt?: DateTimeFilter<"DiscountCode"> | Date | string
     updatedAt?: DateTimeFilter<"DiscountCode"> | Date | string
@@ -18546,6 +18599,7 @@ export namespace Prisma {
     maxUses?: SortOrderInput | SortOrder
     usesCount?: SortOrder
     attributionLabel?: SortOrderInput | SortOrder
+    seasonLabel?: SortOrderInput | SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -18571,6 +18625,7 @@ export namespace Prisma {
     maxUses?: IntNullableWithAggregatesFilter<"DiscountCode"> | number | null
     usesCount?: IntWithAggregatesFilter<"DiscountCode"> | number
     attributionLabel?: StringNullableWithAggregatesFilter<"DiscountCode"> | string | null
+    seasonLabel?: StringNullableWithAggregatesFilter<"DiscountCode"> | string | null
     isActive?: BoolWithAggregatesFilter<"DiscountCode"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"DiscountCode"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DiscountCode"> | Date | string
@@ -19058,6 +19113,7 @@ export namespace Prisma {
     cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: number
     priceCents: number
     imageUrl?: string | null
     imageAlt?: string | null
@@ -19080,6 +19136,7 @@ export namespace Prisma {
     cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: number
     priceCents: number
     imageUrl?: string | null
     imageAlt?: string | null
@@ -19102,6 +19159,7 @@ export namespace Prisma {
     cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: IntFieldUpdateOperationsInput | number
     priceCents?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageAlt?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19124,6 +19182,7 @@ export namespace Prisma {
     cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: IntFieldUpdateOperationsInput | number
     priceCents?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageAlt?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19146,6 +19205,7 @@ export namespace Prisma {
     cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: number
     priceCents: number
     imageUrl?: string | null
     imageAlt?: string | null
@@ -19167,6 +19227,7 @@ export namespace Prisma {
     cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: IntFieldUpdateOperationsInput | number
     priceCents?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageAlt?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19188,6 +19249,7 @@ export namespace Prisma {
     cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: IntFieldUpdateOperationsInput | number
     priceCents?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageAlt?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19207,6 +19269,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -19237,6 +19302,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -19267,6 +19335,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -19297,6 +19368,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -19327,6 +19401,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -19352,6 +19429,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -19376,6 +19456,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -19485,6 +19568,8 @@ export namespace Prisma {
     paymentStatus?: $Enums.PaymentStatus
     method?: string | null
     checkoutUrl?: string | null
+    receiptSentAt?: Date | string | null
+    notifiedAt?: Date | string | null
     refundedCents?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19504,6 +19589,8 @@ export namespace Prisma {
     paymentStatus?: $Enums.PaymentStatus
     method?: string | null
     checkoutUrl?: string | null
+    receiptSentAt?: Date | string | null
+    notifiedAt?: Date | string | null
     refundedCents?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19521,6 +19608,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
     method?: NullableStringFieldUpdateOperationsInput | string | null
     checkoutUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19540,6 +19629,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
     method?: NullableStringFieldUpdateOperationsInput | string | null
     checkoutUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19558,6 +19649,8 @@ export namespace Prisma {
     paymentStatus?: $Enums.PaymentStatus
     method?: string | null
     checkoutUrl?: string | null
+    receiptSentAt?: Date | string | null
+    notifiedAt?: Date | string | null
     refundedCents?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19575,6 +19668,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
     method?: NullableStringFieldUpdateOperationsInput | string | null
     checkoutUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19593,6 +19688,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
     method?: NullableStringFieldUpdateOperationsInput | string | null
     checkoutUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19602,20 +19699,14 @@ export namespace Prisma {
 
   export type DeliveryCreateInput = {
     id?: string
-    provider?: $Enums.DeliveryProvider
-    providerRef?: string | null
-    quotationId?: string | null
-    estimatedCostCents?: number | null
-    actualCostCents?: number | null
     deliveryStatus?: $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: string | null
+    courierRef?: string | null
+    actualCostCents?: number | null
+    notes?: string | null
     failureReason?: string | null
-    attempts?: number
-    nextAttemptAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    bookedAt?: Date | string | null
+    dispatchedAt?: Date | string | null
     deliveredAt?: Date | string | null
     order: OrderCreateNestedOneWithoutDeliveryInput
   }
@@ -19623,39 +19714,27 @@ export namespace Prisma {
   export type DeliveryUncheckedCreateInput = {
     id?: string
     orderId: string
-    provider?: $Enums.DeliveryProvider
-    providerRef?: string | null
-    quotationId?: string | null
-    estimatedCostCents?: number | null
-    actualCostCents?: number | null
     deliveryStatus?: $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: string | null
+    courierRef?: string | null
+    actualCostCents?: number | null
+    notes?: string | null
     failureReason?: string | null
-    attempts?: number
-    nextAttemptAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    bookedAt?: Date | string | null
+    dispatchedAt?: Date | string | null
     deliveredAt?: Date | string | null
   }
 
   export type DeliveryUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    provider?: EnumDeliveryProviderFieldUpdateOperationsInput | $Enums.DeliveryProvider
-    providerRef?: NullableStringFieldUpdateOperationsInput | string | null
-    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
-    estimatedCostCents?: NullableIntFieldUpdateOperationsInput | number | null
-    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
     deliveryStatus?: EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    courierRef?: NullableStringFieldUpdateOperationsInput | string | null
+    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    attempts?: IntFieldUpdateOperationsInput | number
-    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    bookedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     order?: OrderUpdateOneRequiredWithoutDeliveryNestedInput
   }
@@ -19663,79 +19742,55 @@ export namespace Prisma {
   export type DeliveryUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     orderId?: StringFieldUpdateOperationsInput | string
-    provider?: EnumDeliveryProviderFieldUpdateOperationsInput | $Enums.DeliveryProvider
-    providerRef?: NullableStringFieldUpdateOperationsInput | string | null
-    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
-    estimatedCostCents?: NullableIntFieldUpdateOperationsInput | number | null
-    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
     deliveryStatus?: EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    courierRef?: NullableStringFieldUpdateOperationsInput | string | null
+    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    attempts?: IntFieldUpdateOperationsInput | number
-    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    bookedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type DeliveryCreateManyInput = {
     id?: string
     orderId: string
-    provider?: $Enums.DeliveryProvider
-    providerRef?: string | null
-    quotationId?: string | null
-    estimatedCostCents?: number | null
-    actualCostCents?: number | null
     deliveryStatus?: $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: string | null
+    courierRef?: string | null
+    actualCostCents?: number | null
+    notes?: string | null
     failureReason?: string | null
-    attempts?: number
-    nextAttemptAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    bookedAt?: Date | string | null
+    dispatchedAt?: Date | string | null
     deliveredAt?: Date | string | null
   }
 
   export type DeliveryUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    provider?: EnumDeliveryProviderFieldUpdateOperationsInput | $Enums.DeliveryProvider
-    providerRef?: NullableStringFieldUpdateOperationsInput | string | null
-    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
-    estimatedCostCents?: NullableIntFieldUpdateOperationsInput | number | null
-    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
     deliveryStatus?: EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    courierRef?: NullableStringFieldUpdateOperationsInput | string | null
+    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    attempts?: IntFieldUpdateOperationsInput | number
-    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    bookedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type DeliveryUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     orderId?: StringFieldUpdateOperationsInput | string
-    provider?: EnumDeliveryProviderFieldUpdateOperationsInput | $Enums.DeliveryProvider
-    providerRef?: NullableStringFieldUpdateOperationsInput | string | null
-    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
-    estimatedCostCents?: NullableIntFieldUpdateOperationsInput | number | null
-    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
     deliveryStatus?: EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    courierRef?: NullableStringFieldUpdateOperationsInput | string | null
+    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    attempts?: IntFieldUpdateOperationsInput | number
-    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    bookedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
@@ -19751,6 +19806,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19770,6 +19826,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19789,6 +19846,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19808,6 +19866,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19827,6 +19886,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19844,6 +19904,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19861,6 +19922,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20508,6 +20570,7 @@ export namespace Prisma {
     cardLabel?: SortOrder
     description?: SortOrder
     specs?: SortOrder
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrder
     imageAlt?: SortOrder
@@ -20520,6 +20583,7 @@ export namespace Prisma {
   }
 
   export type ProductAvgOrderByAggregateInput = {
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     stockQty?: SortOrder
     lowStockAt?: SortOrder
@@ -20535,6 +20599,7 @@ export namespace Prisma {
     shortDesc?: SortOrder
     cardLabel?: SortOrder
     description?: SortOrder
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrder
     imageAlt?: SortOrder
@@ -20555,6 +20620,7 @@ export namespace Prisma {
     shortDesc?: SortOrder
     cardLabel?: SortOrder
     description?: SortOrder
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     imageUrl?: SortOrder
     imageAlt?: SortOrder
@@ -20567,6 +20633,7 @@ export namespace Prisma {
   }
 
   export type ProductSumOrderByAggregateInput = {
+    unitsPerPack?: SortOrder
     priceCents?: SortOrder
     stockQty?: SortOrder
     lowStockAt?: SortOrder
@@ -20705,16 +20772,11 @@ export namespace Prisma {
     not?: NestedEnumOrderStatusFilter<$PrismaModel> | $Enums.OrderStatus
   }
 
-  export type UuidNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  export type EnumDeliveryMethodFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryMethod | EnumDeliveryMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryMethodFilter<$PrismaModel> | $Enums.DeliveryMethod
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -20726,6 +20788,18 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type UuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
   }
 
   export type DiscountCodeNullableScalarRelationFilter = {
@@ -20766,6 +20840,9 @@ export namespace Prisma {
     discountCents?: SortOrder
     deliveryFeeCents?: SortOrder
     totalCents?: SortOrder
+    deliveryMethod?: SortOrder
+    deliverySlotStart?: SortOrder
+    deliverySlotEnd?: SortOrder
     contactName?: SortOrder
     contactEmail?: SortOrder
     contactPhone?: SortOrder
@@ -20798,6 +20875,9 @@ export namespace Prisma {
     discountCents?: SortOrder
     deliveryFeeCents?: SortOrder
     totalCents?: SortOrder
+    deliveryMethod?: SortOrder
+    deliverySlotStart?: SortOrder
+    deliverySlotEnd?: SortOrder
     contactName?: SortOrder
     contactEmail?: SortOrder
     contactPhone?: SortOrder
@@ -20823,6 +20903,9 @@ export namespace Prisma {
     discountCents?: SortOrder
     deliveryFeeCents?: SortOrder
     totalCents?: SortOrder
+    deliveryMethod?: SortOrder
+    deliverySlotStart?: SortOrder
+    deliverySlotEnd?: SortOrder
     contactName?: SortOrder
     contactEmail?: SortOrder
     contactPhone?: SortOrder
@@ -20857,19 +20940,14 @@ export namespace Prisma {
     _max?: NestedEnumOrderStatusFilter<$PrismaModel>
   }
 
-  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
+  export type EnumDeliveryMethodWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryMethod | EnumDeliveryMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryMethodWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryMethod
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDeliveryMethodFilter<$PrismaModel>
+    _max?: NestedEnumDeliveryMethodFilter<$PrismaModel>
   }
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -20884,6 +20962,21 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type OrderScalarRelationFilter = {
@@ -20962,6 +21055,8 @@ export namespace Prisma {
     paymentStatus?: SortOrder
     method?: SortOrder
     checkoutUrl?: SortOrder
+    receiptSentAt?: SortOrder
+    notifiedAt?: SortOrder
     refundedCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -20985,6 +21080,8 @@ export namespace Prisma {
     paymentStatus?: SortOrder
     method?: SortOrder
     checkoutUrl?: SortOrder
+    receiptSentAt?: SortOrder
+    notifiedAt?: SortOrder
     refundedCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21003,6 +21100,8 @@ export namespace Prisma {
     paymentStatus?: SortOrder
     method?: SortOrder
     checkoutUrl?: SortOrder
+    receiptSentAt?: SortOrder
+    notifiedAt?: SortOrder
     refundedCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21025,11 +21124,11 @@ export namespace Prisma {
     _max?: NestedEnumPaymentStatusFilter<$PrismaModel>
   }
 
-  export type EnumDeliveryProviderFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryProvider | EnumDeliveryProviderFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryProviderFilter<$PrismaModel> | $Enums.DeliveryProvider
+  export type EnumDeliveryStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryStatusFilter<$PrismaModel> | $Enums.DeliveryStatus
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -21043,114 +21142,64 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
-  export type EnumDeliveryStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryStatusFilter<$PrismaModel> | $Enums.DeliveryStatus
-  }
-  export type JsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
-
   export type DeliveryCountOrderByAggregateInput = {
     id?: SortOrder
     orderId?: SortOrder
-    provider?: SortOrder
-    providerRef?: SortOrder
-    quotationId?: SortOrder
-    estimatedCostCents?: SortOrder
-    actualCostCents?: SortOrder
     deliveryStatus?: SortOrder
-    driver?: SortOrder
-    trackingUrl?: SortOrder
+    courierRef?: SortOrder
+    actualCostCents?: SortOrder
+    notes?: SortOrder
     failureReason?: SortOrder
-    attempts?: SortOrder
-    nextAttemptAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    bookedAt?: SortOrder
+    dispatchedAt?: SortOrder
     deliveredAt?: SortOrder
   }
 
   export type DeliveryAvgOrderByAggregateInput = {
-    estimatedCostCents?: SortOrder
     actualCostCents?: SortOrder
-    attempts?: SortOrder
   }
 
   export type DeliveryMaxOrderByAggregateInput = {
     id?: SortOrder
     orderId?: SortOrder
-    provider?: SortOrder
-    providerRef?: SortOrder
-    quotationId?: SortOrder
-    estimatedCostCents?: SortOrder
-    actualCostCents?: SortOrder
     deliveryStatus?: SortOrder
-    trackingUrl?: SortOrder
+    courierRef?: SortOrder
+    actualCostCents?: SortOrder
+    notes?: SortOrder
     failureReason?: SortOrder
-    attempts?: SortOrder
-    nextAttemptAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    bookedAt?: SortOrder
+    dispatchedAt?: SortOrder
     deliveredAt?: SortOrder
   }
 
   export type DeliveryMinOrderByAggregateInput = {
     id?: SortOrder
     orderId?: SortOrder
-    provider?: SortOrder
-    providerRef?: SortOrder
-    quotationId?: SortOrder
-    estimatedCostCents?: SortOrder
-    actualCostCents?: SortOrder
     deliveryStatus?: SortOrder
-    trackingUrl?: SortOrder
+    courierRef?: SortOrder
+    actualCostCents?: SortOrder
+    notes?: SortOrder
     failureReason?: SortOrder
-    attempts?: SortOrder
-    nextAttemptAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    bookedAt?: SortOrder
+    dispatchedAt?: SortOrder
     deliveredAt?: SortOrder
   }
 
   export type DeliverySumOrderByAggregateInput = {
-    estimatedCostCents?: SortOrder
     actualCostCents?: SortOrder
-    attempts?: SortOrder
   }
 
-  export type EnumDeliveryProviderWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryProvider | EnumDeliveryProviderFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryProviderWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryProvider
+  export type EnumDeliveryStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryStatusWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryStatus
     _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDeliveryProviderFilter<$PrismaModel>
-    _max?: NestedEnumDeliveryProviderFilter<$PrismaModel>
+    _min?: NestedEnumDeliveryStatusFilter<$PrismaModel>
+    _max?: NestedEnumDeliveryStatusFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -21167,42 +21216,6 @@ export namespace Prisma {
     _sum?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedIntNullableFilter<$PrismaModel>
     _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
-  export type EnumDeliveryStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryStatusWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDeliveryStatusFilter<$PrismaModel>
-    _max?: NestedEnumDeliveryStatusFilter<$PrismaModel>
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type EnumDiscountValueTypeFilter<$PrismaModel = never> = {
@@ -21251,6 +21264,7 @@ export namespace Prisma {
     maxUses?: SortOrder
     usesCount?: SortOrder
     attributionLabel?: SortOrder
+    seasonLabel?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21275,6 +21289,7 @@ export namespace Prisma {
     maxUses?: SortOrder
     usesCount?: SortOrder
     attributionLabel?: SortOrder
+    seasonLabel?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21292,6 +21307,7 @@ export namespace Prisma {
     maxUses?: SortOrder
     usesCount?: SortOrder
     attributionLabel?: SortOrder
+    seasonLabel?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21566,6 +21582,29 @@ export namespace Prisma {
     _min?: NestedEnumAdminRoleFilter<$PrismaModel>
     _max?: NestedEnumAdminRoleFilter<$PrismaModel>
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type AdminUserNullableScalarRelationFilter = {
     is?: AdminUserWhereInput | null
@@ -21605,6 +21644,32 @@ export namespace Prisma {
     action?: SortOrder
     ip?: SortOrder
     createdAt?: SortOrder
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type OrderItemCreateNestedManyWithoutProductInput = {
@@ -21749,6 +21814,10 @@ export namespace Prisma {
 
   export type EnumOrderStatusFieldUpdateOperationsInput = {
     set?: $Enums.OrderStatus
+  }
+
+  export type EnumDeliveryMethodFieldUpdateOperationsInput = {
+    set?: $Enums.DeliveryMethod
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -21933,8 +22002,8 @@ export namespace Prisma {
     connect?: OrderWhereUniqueInput
   }
 
-  export type EnumDeliveryProviderFieldUpdateOperationsInput = {
-    set?: $Enums.DeliveryProvider
+  export type EnumDeliveryStatusFieldUpdateOperationsInput = {
+    set?: $Enums.DeliveryStatus
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -21943,10 +22012,6 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
-  }
-
-  export type EnumDeliveryStatusFieldUpdateOperationsInput = {
-    set?: $Enums.DeliveryStatus
   }
 
   export type OrderUpdateOneRequiredWithoutDeliveryNestedInput = {
@@ -22378,15 +22443,11 @@ export namespace Prisma {
     not?: NestedEnumOrderStatusFilter<$PrismaModel> | $Enums.OrderStatus
   }
 
-  export type NestedUuidNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  export type NestedEnumDeliveryMethodFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryMethod | EnumDeliveryMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryMethodFilter<$PrismaModel> | $Enums.DeliveryMethod
   }
 
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
@@ -22400,6 +22461,17 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type NestedUuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
   export type NestedEnumOrderStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.OrderStatus | EnumOrderStatusFieldRefInput<$PrismaModel>
     in?: $Enums.OrderStatus[] | ListEnumOrderStatusFieldRefInput<$PrismaModel>
@@ -22410,18 +22482,14 @@ export namespace Prisma {
     _max?: NestedEnumOrderStatusFilter<$PrismaModel>
   }
 
-  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
+  export type NestedEnumDeliveryMethodWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryMethod | EnumDeliveryMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryMethod[] | ListEnumDeliveryMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryMethodWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryMethod
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDeliveryMethodFilter<$PrismaModel>
+    _max?: NestedEnumDeliveryMethodFilter<$PrismaModel>
   }
 
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -22436,6 +22504,20 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumPaymentStatusFilter<$PrismaModel = never> = {
@@ -22455,13 +22537,6 @@ export namespace Prisma {
     _max?: NestedEnumPaymentStatusFilter<$PrismaModel>
   }
 
-  export type NestedEnumDeliveryProviderFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryProvider | EnumDeliveryProviderFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryProviderFilter<$PrismaModel> | $Enums.DeliveryProvider
-  }
-
   export type NestedEnumDeliveryStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
     in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
@@ -22469,14 +22544,14 @@ export namespace Prisma {
     not?: NestedEnumDeliveryStatusFilter<$PrismaModel> | $Enums.DeliveryStatus
   }
 
-  export type NestedEnumDeliveryProviderWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryProvider | EnumDeliveryProviderFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryProvider[] | ListEnumDeliveryProviderFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryProviderWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryProvider
+  export type NestedEnumDeliveryStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDeliveryStatusWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryStatus
     _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDeliveryProviderFilter<$PrismaModel>
-    _max?: NestedEnumDeliveryProviderFilter<$PrismaModel>
+    _min?: NestedEnumDeliveryStatusFilter<$PrismaModel>
+    _max?: NestedEnumDeliveryStatusFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -22504,39 +22579,6 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type NestedEnumDeliveryStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.DeliveryStatus | EnumDeliveryStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.DeliveryStatus[] | ListEnumDeliveryStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumDeliveryStatusWithAggregatesFilter<$PrismaModel> | $Enums.DeliveryStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumDeliveryStatusFilter<$PrismaModel>
-    _max?: NestedEnumDeliveryStatusFilter<$PrismaModel>
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedEnumDiscountValueTypeFilter<$PrismaModel = never> = {
@@ -22605,6 +22647,29 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumAdminRoleFilter<$PrismaModel>
     _max?: NestedEnumAdminRoleFilter<$PrismaModel>
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type OrderItemCreateWithoutProductInput = {
@@ -22682,6 +22747,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22700,6 +22766,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22753,6 +22820,8 @@ export namespace Prisma {
     paymentStatus?: $Enums.PaymentStatus
     method?: string | null
     checkoutUrl?: string | null
+    receiptSentAt?: Date | string | null
+    notifiedAt?: Date | string | null
     refundedCents?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22770,6 +22839,8 @@ export namespace Prisma {
     paymentStatus?: $Enums.PaymentStatus
     method?: string | null
     checkoutUrl?: string | null
+    receiptSentAt?: Date | string | null
+    notifiedAt?: Date | string | null
     refundedCents?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22784,39 +22855,27 @@ export namespace Prisma {
 
   export type DeliveryCreateWithoutOrderInput = {
     id?: string
-    provider?: $Enums.DeliveryProvider
-    providerRef?: string | null
-    quotationId?: string | null
-    estimatedCostCents?: number | null
-    actualCostCents?: number | null
     deliveryStatus?: $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: string | null
+    courierRef?: string | null
+    actualCostCents?: number | null
+    notes?: string | null
     failureReason?: string | null
-    attempts?: number
-    nextAttemptAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    bookedAt?: Date | string | null
+    dispatchedAt?: Date | string | null
     deliveredAt?: Date | string | null
   }
 
   export type DeliveryUncheckedCreateWithoutOrderInput = {
     id?: string
-    provider?: $Enums.DeliveryProvider
-    providerRef?: string | null
-    quotationId?: string | null
-    estimatedCostCents?: number | null
-    actualCostCents?: number | null
     deliveryStatus?: $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: string | null
+    courierRef?: string | null
+    actualCostCents?: number | null
+    notes?: string | null
     failureReason?: string | null
-    attempts?: number
-    nextAttemptAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    bookedAt?: Date | string | null
+    dispatchedAt?: Date | string | null
     deliveredAt?: Date | string | null
   }
 
@@ -22899,6 +22958,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22917,6 +22977,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22960,6 +23021,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
     method?: NullableStringFieldUpdateOperationsInput | string | null
     checkoutUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22977,6 +23040,8 @@ export namespace Prisma {
     paymentStatus?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
     method?: NullableStringFieldUpdateOperationsInput | string | null
     checkoutUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22997,39 +23062,27 @@ export namespace Prisma {
 
   export type DeliveryUpdateWithoutOrderInput = {
     id?: StringFieldUpdateOperationsInput | string
-    provider?: EnumDeliveryProviderFieldUpdateOperationsInput | $Enums.DeliveryProvider
-    providerRef?: NullableStringFieldUpdateOperationsInput | string | null
-    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
-    estimatedCostCents?: NullableIntFieldUpdateOperationsInput | number | null
-    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
     deliveryStatus?: EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    courierRef?: NullableStringFieldUpdateOperationsInput | string | null
+    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    attempts?: IntFieldUpdateOperationsInput | number
-    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    bookedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type DeliveryUncheckedUpdateWithoutOrderInput = {
     id?: StringFieldUpdateOperationsInput | string
-    provider?: EnumDeliveryProviderFieldUpdateOperationsInput | $Enums.DeliveryProvider
-    providerRef?: NullableStringFieldUpdateOperationsInput | string | null
-    quotationId?: NullableStringFieldUpdateOperationsInput | string | null
-    estimatedCostCents?: NullableIntFieldUpdateOperationsInput | number | null
-    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
     deliveryStatus?: EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-    driver?: NullableJsonNullValueInput | InputJsonValue
-    trackingUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    courierRef?: NullableStringFieldUpdateOperationsInput | string | null
+    actualCostCents?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     failureReason?: NullableStringFieldUpdateOperationsInput | string | null
-    attempts?: IntFieldUpdateOperationsInput | number
-    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    bookedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
@@ -23098,6 +23151,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23127,6 +23183,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23163,6 +23222,7 @@ export namespace Prisma {
     cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: number
     priceCents: number
     imageUrl?: string | null
     imageAlt?: string | null
@@ -23184,6 +23244,7 @@ export namespace Prisma {
     cardLabel?: string | null
     description: string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: number
     priceCents: number
     imageUrl?: string | null
     imageAlt?: string | null
@@ -23219,6 +23280,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23248,6 +23312,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23290,6 +23357,7 @@ export namespace Prisma {
     cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: IntFieldUpdateOperationsInput | number
     priceCents?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageAlt?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23311,6 +23379,7 @@ export namespace Prisma {
     cardLabel?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
     specs?: JsonNullValueInput | InputJsonValue
+    unitsPerPack?: IntFieldUpdateOperationsInput | number
     priceCents?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageAlt?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23330,6 +23399,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23359,6 +23431,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23404,6 +23479,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23433,6 +23511,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23462,6 +23543,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23491,6 +23575,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23536,6 +23623,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23565,6 +23655,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23594,6 +23687,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23623,6 +23719,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23707,6 +23806,9 @@ export namespace Prisma {
     discountCents?: IntFilter<"Order"> | number
     deliveryFeeCents?: IntFilter<"Order"> | number
     totalCents?: IntFilter<"Order"> | number
+    deliveryMethod?: EnumDeliveryMethodFilter<"Order"> | $Enums.DeliveryMethod
+    deliverySlotStart?: DateTimeNullableFilter<"Order"> | Date | string | null
+    deliverySlotEnd?: DateTimeNullableFilter<"Order"> | Date | string | null
     contactName?: StringFilter<"Order"> | string
     contactEmail?: StringFilter<"Order"> | string
     contactPhone?: StringFilter<"Order"> | string
@@ -23764,6 +23866,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23782,6 +23885,7 @@ export namespace Prisma {
     maxUses?: number | null
     usesCount?: number
     attributionLabel?: string | null
+    seasonLabel?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23801,6 +23905,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23830,6 +23937,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -23879,6 +23989,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23897,6 +24008,7 @@ export namespace Prisma {
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usesCount?: IntFieldUpdateOperationsInput | number
     attributionLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    seasonLabel?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23922,6 +24034,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23951,6 +24066,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -23980,6 +24098,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -24009,6 +24130,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -24054,6 +24178,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -24083,6 +24210,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -24374,6 +24504,9 @@ export namespace Prisma {
     discountCents?: number
     deliveryFeeCents: number
     totalCents: number
+    deliveryMethod?: $Enums.DeliveryMethod
+    deliverySlotStart?: Date | string | null
+    deliverySlotEnd?: Date | string | null
     contactName: string
     contactEmail: string
     contactPhone: string
@@ -24406,6 +24539,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -24435,6 +24571,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string
@@ -24464,6 +24603,9 @@ export namespace Prisma {
     discountCents?: IntFieldUpdateOperationsInput | number
     deliveryFeeCents?: IntFieldUpdateOperationsInput | number
     totalCents?: IntFieldUpdateOperationsInput | number
+    deliveryMethod?: EnumDeliveryMethodFieldUpdateOperationsInput | $Enums.DeliveryMethod
+    deliverySlotStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deliverySlotEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     contactName?: StringFieldUpdateOperationsInput | string
     contactEmail?: StringFieldUpdateOperationsInput | string
     contactPhone?: StringFieldUpdateOperationsInput | string

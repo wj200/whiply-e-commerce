@@ -26,7 +26,7 @@ export async function countRedemption(
 ): Promise<RedemptionOutcome> {
   // Conditional increment. 0 rows means the code ran out while this customer
   // was paying — we still honour the price they were quoted and charged,
-  // because refusing a payment HitPay has already captured is the worse
+  // because refusing a payment Stripe has already captured is the worse
   // failure. The over-redemption is recorded and surfaced to the operator.
   const updated = await tx.$executeRaw`
     UPDATE discount_codes

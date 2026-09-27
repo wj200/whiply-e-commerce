@@ -1,7 +1,7 @@
 # WHIPLY — every credential, audited against the code
 
 Not a generic vendor list. Every entry below was verified against
-`lib/config/env.ts` and its consumers on 20 Sept 2026. Where a key is optional
+`lib/config/env.ts` and its consumers on 26 Sept 2026. Where a key is optional
 in the schema but breaks something in practice, that is stated.
 
 **Tiers**
@@ -15,57 +15,150 @@ in the schema but breaks something in practice, that is stated.
 
 ---
 
-## Tier A — the deploy will not start without these (11)
+## Read this before you register anything
+
+**Stripe PayNow does not pay out to a personal PayNow number.**
+
+This is the single most important thing on the page, and it is the opposite of
+what "PayNow tied to a personal Singapore number" suggests. When a customer
+scans a Stripe PayNow QR:
+
+1. The money goes to **Stripe's** collection account, not to a phone number.
+2. Stripe credits it to **your Stripe balance**, minus fees.
+3. Stripe pays out on a schedule to **one bank account**, which must be a
+   Singapore business account in the name of the verified business.
+
+There is no configuration, and no API field, that routes a Stripe PayNow
+payment to a personal mobile number or NRIC-linked PayNow handle. If receiving
+straight into a personal PayNow is a requirement, Stripe is the wrong tool and
+the honest options are:
+
+- **Register the business and take payouts to a business bank account.** This
+  is what the code assumes and what these steps describe.
+- **Take PayNow manually** — display a static personal QR, have customers
+  upload a screenshot, and reconcile by hand. That is a different product: no
+  automated confirmation, no automated receipt, no automated WhatsApp alert,
+  because nothing tells the server the money arrived. Everything in §6.4 of the
+  architecture document exists precisely to avoid this.
+
+Nothing below works around this. Decide it first.
+
+---
+
+## Tier A — the deploy will not start without these (14)
 
 | Variable | Where it comes from | Notes |
 |---|---|---|
 | `DATABASE_URL` | Neon → **pooled** connection string | App queries. Must be the pooled one on serverless. |
 | `NEXT_PUBLIC_SITE_URL` | Your domain | Must be `https://` in production. **Also inlined at build time** — set it before the first build, not after. |
 | `AUTH_SECRET` | `openssl rand -base64 32` | Min 32 chars. Signs admin sessions. Rejected if it contains `dev-only`. |
-| `CRON_SECRET` | `openssl rand -hex 32` | Min 8 chars. Guards the six cron routes. Rejected if it contains `dev-only`. |
-| `HITPAY_API_BASE` | HitPay docs | Must **not** contain `sandbox` in production — the deploy checks. |
-| `HITPAY_API_KEY` | HitPay dashboard → API keys | |
-| `HITPAY_WEBHOOK_SALT` | HitPay dashboard → webhooks | **The single most sensitive value.** Without it a forged payment confirmation would be indistinguishable from a real one, which is exactly why the deploy refuses to start. |
-| `LALAMOVE_API_BASE` | Lalamove | Must not contain `sandbox` in production. |
-| `LALAMOVE_API_KEY` | Lalamove Partner API | |
-| `LALAMOVE_API_SECRET` | Lalamove Partner API | |
-| `LALAMOVE_WEBHOOK_SECRET` | Lalamove | Verifies delivery status callbacks. |
+| `CRON_SECRET` | `openssl rand -hex 32` | Min 8 chars. Guards the five cron routes. Rejected if it contains `dev-only`. |
+| `STRIPE_SECRET_KEY` | Stripe → Developers → API keys | Must start `sk_live_` in production; the deploy rejects `sk_test_`. |
+| `STRIPE_WEBHOOK_SECRET` | Stripe → Developers → Webhooks → your endpoint → *Signing secret* | Starts `whsec_`. **The single most sensitive value.** Without it a forged payment confirmation would be indistinguishable from a real one, which is exactly why the deploy refuses to start. |
+| `RESEND_API_KEY` | Resend → API keys | Receipts. See the note below. |
+| `RESEND_FROM_EMAIL` | You | e.g. `WHIPLY <orders@whiply.sg>`. Domain must be verified in Resend. |
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta → WhatsApp → API Setup | The number that **sends**. |
+| `WHATSAPP_ACCESS_TOKEN` | Meta → System user → permanent token | A 24-hour test token will expire mid-week. Use a permanent System User token. |
+| `WHATSAPP_BUSINESS_NUMBER` | You | The number that **receives** the alert — the shop's own line, in E.164 (`+6591234567`). Validated as E.164 by the deploy. |
+| `TURNSTILE_SITE_KEY` | Cloudflare → Turnstile | |
+| `TURNSTILE_SECRET_KEY` | Cloudflare → Turnstile | |
+| `WHATSAPP_TEMPLATE_NAME` | You (must match Meta) | Defaults to `whiply_order_alert`. Empty string is rejected in production. |
 
-> **If Lalamove approval has not come through yet:** you still cannot deploy
-> without these four, because the courier client reads them at module load.
-> Workaround — set them to any non-empty placeholder and a base URL that does
-> **not** contain the word `sandbox` (e.g. `https://rest.lalamove.com`). Keep
-> `auto_dispatch_enabled` off and use **Record an off-platform delivery** on each
-> order; that path never calls Lalamove. Swap in real keys when they arrive.
-> Tell me if you'd rather I made these four genuinely optional instead.
+**The four WhatsApp rows above are waived** if you set
+`WHATSAPP_ALERTS_DISABLED=true` — see below.
 
-`LALAMOVE_MARKET` defaults to `SG` — set it only if that changes.
+> **Why Resend and WhatsApp block the deploy rather than degrading.**
+> Both fail *silently*: without a Resend key, every paying customer gets no
+> invoice; without WhatsApp credentials, no one is told an order came in. In
+> both cases the deploy would report success and the shop would look fine. The
+> same reasoning already applied to Turnstile, which fails closed and would
+> reject every bulk enquiry. A refused deploy is a better outcome than a green
+> one that quietly does nothing.
+
+Defaults you only set if they change: `STRIPE_API_BASE`
+(`https://api.stripe.com`), `WHATSAPP_API_BASE`
+(`https://graph.facebook.com/v21.0`), `WHATSAPP_TEMPLATE_LANGUAGE` (`en`).
 
 ---
 
-## Tier B — deploy succeeds, something is broken (2)
+## The WhatsApp message template
 
-| Variable | Where | What breaks without it |
+This is the part of the integration that most often looks configured and is
+not, so it gets its own section.
+
+Meta only allows **free-form** text to a number inside a 24-hour "customer
+service window", which opens when that number messages your business first. An
+order alert is business-initiated and there is no such window. Free-form text
+will be **accepted by the API with a 200 and then never delivered.**
+
+So the alert is sent as a pre-approved **template**. Submit this in
+**Meta Business Suite → WhatsApp Manager → Message templates**:
+
+- **Name:** `whiply_order_alert` (must equal `WHATSAPP_TEMPLATE_NAME`)
+- **Category:** Utility
+- **Language:** English (`en`, matching `WHATSAPP_TEMPLATE_LANGUAGE`)
+- **Body:**
+
+  ```
+  New order {{1}} — {{2}} paid.
+  Delivery: {{3}}
+  Items: {{4}}
+  ```
+
+The four parameters are produced by `templateParameters()` in
+`lib/notify/whatsapp.ts`, in this order:
+
+| | Contents | Example |
 |---|---|---|
-| `TURNSTILE_SITE_KEY` | Cloudflare → Turnstile | The widget cannot render. |
-| `TURNSTILE_SECRET_KEY` | Cloudflare → Turnstile | **Every bulk order enquiry is rejected.** `verifyTurnstile()` fails closed in production by design. |
+| `{{1}}` | Order reference | `WHP-20260926-4K7QP` |
+| `{{2}}` | Total paid | `S$190.00` |
+| `{{3}}` | Speed and slot | `Express (within 2 hours) — Sat 26 Sep, 3pm – 4pm` |
+| `{{4}}` | Item summary | `1 × 640g N₂O Cream Charger — 6 Tanks` |
 
-> I found this while auditing and **changed the code**: production now refuses to
-> start without both, rather than launching with a silently dead lead form. Two
-> tests cover it. Development is unaffected.
+**If you change the template body, change that function too.** A template whose
+parameter count does not match the call is rejected at send time, and the alert
+silently stops. An integration test asserts the parameters stay single-line,
+because Meta rejects a parameter containing a newline or four consecutive
+spaces.
+
+Approval takes minutes to a day — but only *after* business verification,
+which takes days to weeks. Until it lands you can set
+`WHATSAPP_TEMPLATE_NAME=""` **in development only** to send free-form text.
+
+### Launching before any of this is ready
+
+`WHATSAPP_ALERTS_DISABLED=true` is the deliberate opt-out. With it set:
+
+- Production starts with **no** `WHATSAPP_*` credentials at all.
+- Orders are taken and **receipts still go out** — the customer side is
+  unaffected, because that is the half that must never silently break.
+- No order alert is sent, and none is queued: the ten-minute retry sweep
+  skips the WhatsApp dimension entirely rather than re-examining every paid
+  order for a week to do nothing.
+- The admin order page reads **"Alerts switched off"**, not "Not yet", so
+  nobody goes hunting for a failure that is a setting.
+
+Two things to know before you rely on it:
+
+1. **It must be the exact string `true`.** `TRUE`, `True`, `1`, `yes` and a
+   leading space all leave alerts **on** and keep the credential requirement
+   in force. A typo that silently removed your only order notification would
+   be the worst possible behaviour, so near-misses fail loudly instead.
+2. **Until you remove it, the admin console is how you learn an order came
+   in.** Watch it. Removing the variable is the last item on the go-live
+   checklist, and when you do, the sweep picks up any order paid in the
+   previous week that never got an alert.
 
 ---
 
-## Tier C — works without, worse (6)
+## Tier C — works without, worse (5)
 
 | Variable | Where | Without it |
 |---|---|---|
 | `DIRECT_DATABASE_URL` | Neon → **direct** (unpooled) string | Prisma falls back to `DATABASE_URL`. Migrations through a pooler can fail on advisory locks — set it. |
-| `RESEND_API_KEY` | Resend → API keys | No operator email. Enquiries still save; **you simply never hear about them** unless you open the admin panel. Low-stock alerts also stop. |
-| `OPERATOR_ALERT_EMAIL` | You | Same as above. Use an address you read on a phone. |
+| `OPERATOR_ALERT_EMAIL` | You | No low-stock or enquiry alerts by email. Use an address you read on a phone. |
 | `OPERATOR_EMAIL_FROM` | You | Defaults to `WHIPLY <alerts@whiply.sg>`. Must be on a domain verified in Resend. |
-| `UPSTASH_REDIS_REST_URL` | Upstash | Rate limiting falls back to in-process memory — correct on one instance, not across several. Checkout and enquiry still fail closed. |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash | As above. |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Upstash | Rate limiting falls back to in-process memory — correct on one instance, not across several. Checkout and enquiry still fail closed. |
 | `SENTRY_DSN` | Sentry | No error tracking. Logs still go to the hosting platform. |
 
 ---
@@ -89,22 +182,33 @@ host you like, until the upload UI is built.
 
 Some of these issue no key at all but still gate the launch.
 
-1. **ACRA / UEN** — business profile PDF. Required by HitPay and Lalamove.
-2. **Business bank account** in the business name. A personal account fails HitPay KYB.
-3. **HitPay merchant account** + verification (days).
-4. **Lalamove business account** + Partner API access (days).
-5. **Written carrier confirmation for pressurised N₂O** — no key, no form. A
-   conversation with a person. Gates turning auto-dispatch on; does not gate launch.
-6. **Domain registrar** account.
-7. **Vercel** account.
-8. **Neon** account.
-9. **Cloudflare** account (Turnstile — and later R2).
-10. **Resend** account + DNS verification of your sending domain.
-11. **Sentry** account.
-12. **Stock image licence** — Unsplash/Pexels (free) or Adobe Stock. Keep the licences.
+1. **ACRA / UEN** — business profile PDF. Required by Stripe and by Meta.
+2. **Business bank account** in the business name. A personal account fails
+   Stripe's KYB, and it is where PayNow settlements land (see the top of this
+   page).
+3. **Stripe account** + KYB verification (hours to days). Then
+   **Settings → Payment methods → enable PayNow**, and nothing else. Leaving
+   cards enabled in the dashboard is harmless — the integration never asks for
+   them — but disabling them keeps the dashboard honest about what you take.
+4. **Meta Business account** + **business verification** (days), a WhatsApp
+   Business Platform app, a registered sending number, and an approved message
+   template. Business verification is the long pole here; start it early.
+5. **Domain registrar** account.
+6. **Vercel** account.
+7. **Neon** account.
+8. **Cloudflare** account (Turnstile — and later R2).
+9. **Resend** account + DNS verification of your sending domain.
+10. **Sentry** account.
+11. **Stock image licence** — Unsplash/Pexels (free) or Adobe Stock. Keep the
+    licences.
 
-**Not needed:** Stripe. HitPay covers PayNow, cards and wallets in one account;
-a second processor doubles reconciliation for nothing at this size.
+**No longer needed:** HitPay, Lalamove. Both integrations have been removed;
+delete any keys you already issued for them.
+
+**Carrier confirmation for pressurised N₂O** is no longer a launch gate,
+because there is no courier API to hand cylinders to — WHIPLY delivers its own
+orders. It remains a live question for whoever drives the van: confirm what
+your own insurance and vehicle permit allow before carrying cylinders.
 
 ---
 
@@ -115,7 +219,8 @@ openssl rand -base64 32   # AUTH_SECRET
 openssl rand -hex 32      # CRON_SECRET
 ```
 
-Different values per environment. Never reuse a development secret in production.
+Different values per environment. Never reuse a development secret in
+production.
 
 ---
 

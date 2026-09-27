@@ -13,12 +13,12 @@ export async function GET(request: Request) {
 
   const startedAt = Date.now()
   try {
-    const { reconcileDeliveries } = await import('@/lib/jobs/reconcile-deliveries')
-    const result = await reconcileDeliveries()
-    logger.info('cron.reconcile_deliveries.done', { ...result, ms: Date.now() - startedAt })
+    const { sweepPendingNotifications } = await import('@/lib/jobs/after-payment')
+    const result = await sweepPendingNotifications()
+    logger.info('cron.retry_notifications.done', { ...result, ms: Date.now() - startedAt })
     return NextResponse.json({ ok: true, ...result })
   } catch (error) {
-    logger.error('cron.reconcile-deliveries.failed', {
+    logger.error('cron.retry-notifications.failed', {
       message: error instanceof Error ? error.message : 'unknown',
     })
     return NextResponse.json({ ok: false }, { status: 500 })

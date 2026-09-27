@@ -5,8 +5,8 @@ import { z } from 'zod'
  *
  * A missing or malformed value fails the build/deploy rather than producing a
  * running application with, say, signature verification quietly disabled.
- * That specific failure mode — a webhook handler with no salt to verify
- * against — is the reason this module exists, so HITPAY_WEBHOOK_SALT is
+ * That specific failure mode — a webhook handler with no secret to verify
+ * against — is the reason this module exists, so STRIPE_WEBHOOK_SECRET is
  * required in production and cannot be defaulted.
  */
 
@@ -15,6 +15,12 @@ const required = (name: string) =>
 
 const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /**
+   * Set by Vercel to 'production' | 'preview' | 'development'. It exists
+   * because NODE_ENV alone cannot answer the question this module asks —
+   * see `isProductionRuntime` below.
+   */
+  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
 
   DATABASE_URL: required('DATABASE_URL'),
   DIRECT_DATABASE_URL: z.string().min(1).optional(),
@@ -23,15 +29,40 @@ const baseSchema = z.object({
   AUTH_SECRET: required('AUTH_SECRET').min(32, 'AUTH_SECRET must be at least 32 characters'),
   CRON_SECRET: required('CRON_SECRET').min(8),
 
-  HITPAY_API_BASE: z.string().url(),
-  HITPAY_API_KEY: required('HITPAY_API_KEY'),
-  HITPAY_WEBHOOK_SALT: required('HITPAY_WEBHOOK_SALT'),
+  // Stripe — PayNow only. There is no publishable key here on purpose: the
+  // PaymentIntent is created and confirmed server-side and the customer is
+  // sent to Stripe's own hosted QR page, so no Stripe.js runs in the browser
+  // and no key needs to be exposed to it.
+  STRIPE_API_BASE: z.string().url().default('https://api.stripe.com'),
+  STRIPE_SECRET_KEY: required('STRIPE_SECRET_KEY'),
+  STRIPE_WEBHOOK_SECRET: required('STRIPE_WEBHOOK_SECRET'),
 
-  LALAMOVE_API_BASE: z.string().url(),
-  LALAMOVE_API_KEY: required('LALAMOVE_API_KEY'),
-  LALAMOVE_API_SECRET: required('LALAMOVE_API_SECRET'),
-  LALAMOVE_MARKET: z.string().default('SG'),
-  LALAMOVE_WEBHOOK_SECRET: required('LALAMOVE_WEBHOOK_SECRET'),
+  // Customer receipt (§8.5). Optional locally; mandatory in production,
+  // because a paid order with no invoice is a support ticket every time.
+  RESEND_FROM_EMAIL: z.string().optional(),
+
+  // WhatsApp Cloud API — the business's own order alert (§8.6).
+  WHATSAPP_API_BASE: z.string().url().default('https://graph.facebook.com/v21.0'),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  /** The business's WhatsApp number in E.164, e.g. +6591234567. */
+  WHATSAPP_BUSINESS_NUMBER: z.string().optional(),
+  /** Empty string = send free-form text instead of a template (dev only). */
+  WHATSAPP_TEMPLATE_NAME: z.string().default('whiply_order_alert'),
+  WHATSAPP_TEMPLATE_LANGUAGE: z.string().default('en'),
+  /**
+   * The deliberate opt-out. Meta's business verification takes days to weeks,
+   * and refusing to deploy at all until it lands is a worse outcome than
+   * launching on email receipts alone — so this exists, and it is an
+   * environment variable rather than an admin setting because it is a deploy
+   * decision, not something to toggle during service.
+   *
+   * It must be the exact string 'true'. Anything else — 'TRUE', '1', 'yes',
+   * an empty value — leaves alerts ON and the credential requirement in
+   * force, because a typo here should fail loudly rather than silently
+   * disable the only thing that tells the shop an order arrived.
+   */
+  WHATSAPP_ALERTS_DISABLED: z.string().optional(),
 
   R2_ACCOUNT_ID: z.string().optional(),
   R2_BUCKET: z.string().optional(),
@@ -64,6 +95,40 @@ export class EnvError extends Error {
 }
 
 /**
+ * Is this the real, money-taking deployment?
+ *
+ * NOT the same question as `NODE_ENV === 'production'`, and the difference
+ * is a launch-blocker rather than a nicety. Next.js forces NODE_ENV to
+ * 'production' for any `next build`, and Vercel does the same for **preview**
+ * deployments — so keying the hardening below off NODE_ENV alone would demand
+ * a LIVE Stripe key, live Turnstile keys and live WhatsApp credentials on
+ * every pull-request preview. That is the exact arrangement §14.1 of the
+ * blueprint says must never exist, enforced backwards.
+ *
+ * So when Vercel tells us which environment this is, believe it. Everywhere
+ * else — a container host, a VPS, a laptop running `next start` — VERCEL_ENV
+ * is absent and NODE_ENV is the only signal there is, which is the correct
+ * conservative answer: those deployments harden.
+ */
+export function isProductionRuntime(env: {
+  NODE_ENV: string
+  VERCEL_ENV?: string
+}): boolean {
+  if (env.VERCEL_ENV) return env.VERCEL_ENV === 'production'
+  return env.NODE_ENV === 'production'
+}
+
+/**
+ * Are business order alerts switched on for this deployment?
+ *
+ * Exactly the string 'true' turns them off. See WHATSAPP_ALERTS_DISABLED
+ * above for why a near-miss like 'TRUE' deliberately does NOT.
+ */
+export function whatsappAlertsEnabled(env: { WHATSAPP_ALERTS_DISABLED?: string }): boolean {
+  return env.WHATSAPP_ALERTS_DISABLED !== 'true'
+}
+
+/**
  * Production tightens the rules that only matter once real money moves:
  * live secrets must not be placeholders, and the site URL must be https.
  */
@@ -78,7 +143,7 @@ export function parseEnv(raw: NodeJS.ProcessEnv): Env {
   const env = result.data
   const issues: string[] = []
 
-  if (env.NODE_ENV === 'production') {
+  if (isProductionRuntime(env)) {
     if (!env.NEXT_PUBLIC_SITE_URL.startsWith('https://')) {
       issues.push('NEXT_PUBLIC_SITE_URL must be https in production')
     }
@@ -102,12 +167,58 @@ export function parseEnv(raw: NodeJS.ProcessEnv): Env {
       issues.push('TURNSTILE_SITE_KEY is required in production — the form cannot render its widget')
     }
 
-    // Cutover checklist §16.16 item 2, enforced by the deploy.
-    if (env.HITPAY_API_BASE.includes('sandbox')) {
-      issues.push('HITPAY_API_BASE still points at the sandbox in production')
+    // Cutover checklist §16.16 item 2, enforced by the deploy. A test-mode
+    // key in production takes payments that never arrive in the bank.
+    if (env.STRIPE_SECRET_KEY.startsWith('sk_test_')) {
+      issues.push('STRIPE_SECRET_KEY is a TEST key — production must use sk_live_')
     }
-    if (env.LALAMOVE_API_BASE.includes('sandbox')) {
-      issues.push('LALAMOVE_API_BASE still points at the sandbox in production')
+    if (!/^sk_(live|test)_/.test(env.STRIPE_SECRET_KEY)) {
+      issues.push('STRIPE_SECRET_KEY does not look like a Stripe secret key')
+    }
+    if (!env.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
+      issues.push('STRIPE_WEBHOOK_SECRET does not look like a Stripe signing secret')
+    }
+
+    // The receipt path fails the same way Turnstile did: silently. Without a
+    // key, every paid customer gets no invoice and the deploy reports success.
+    if (!env.RESEND_API_KEY) {
+      issues.push(
+        'RESEND_API_KEY is required in production — without it no customer ' +
+          'receives a receipt for a paid order',
+      )
+    }
+    if (!env.RESEND_FROM_EMAIL) {
+      issues.push('RESEND_FROM_EMAIL is required in production — receipts need a verified sender')
+    }
+
+    // Likewise the business alert: the whole point is that someone finds out
+    // an order came in. Unless it has been switched off ON PURPOSE, in which
+    // case none of its credentials are needed and demanding them would block
+    // a launch for no benefit.
+    if (whatsappAlertsEnabled(env)) {
+      const whatsapp = [
+        ['WHATSAPP_PHONE_NUMBER_ID', env.WHATSAPP_PHONE_NUMBER_ID],
+        ['WHATSAPP_ACCESS_TOKEN', env.WHATSAPP_ACCESS_TOKEN],
+        ['WHATSAPP_BUSINESS_NUMBER', env.WHATSAPP_BUSINESS_NUMBER],
+      ] as const
+      for (const [name, value] of whatsapp) {
+        if (!value) {
+          issues.push(
+            `${name} is required in production — without it no order notification ` +
+              'reaches the business WhatsApp number. Set WHATSAPP_ALERTS_DISABLED=true ' +
+              'to launch without alerts on purpose.',
+          )
+        }
+      }
+      if (env.WHATSAPP_BUSINESS_NUMBER && !/^\+[1-9]\d{7,14}$/.test(env.WHATSAPP_BUSINESS_NUMBER)) {
+        issues.push('WHATSAPP_BUSINESS_NUMBER must be E.164, e.g. +6591234567')
+      }
+      if (!env.WHATSAPP_TEMPLATE_NAME) {
+        issues.push(
+          'WHATSAPP_TEMPLATE_NAME must be set in production — a business-initiated ' +
+            'message outside a 24-hour session window must use an approved template',
+        )
+      }
     }
   }
 

@@ -8,6 +8,7 @@ import {
   ZERO,
   type Cents,
 } from '@/lib/money'
+import type { DeliveryMethodName } from './delivery-slots'
 
 /**
  * Blueprint §5.2 — THE ONLY PLACE A TOTAL IS PRODUCED.
@@ -39,7 +40,11 @@ export type PriceableCode = {
 }
 
 export type PricingSettings = {
-  deliveryFeeCents: number
+  /** 2–3 working days. */
+  standardDeliveryFeeCents: number
+  /** Within two hours, same day. */
+  expressDeliveryFeeCents: number
+  /** At or above this, delivery is free — at EITHER speed. See below. */
   freeDeliveryThresholdCents: number
 }
 
@@ -59,23 +64,36 @@ export type PricedBasket = {
   lines: PricedLine[]
   subtotalCents: Cents
   discountCents: Cents
+  deliveryMethod: DeliveryMethodName
   deliveryFeeCents: Cents
   totalCents: Cents
   freeDeliveryApplied: boolean
   /** How much more is needed to reach free delivery. Zero once reached. */
   amountToFreeDeliveryCents: Cents
-  /** The configured rule, so the UI can state it without hard-coding it. */
-  baseDeliveryFeeCents: Cents
+  /** The configured rules, so the UI can state them without hard-coding them. */
+  standardDeliveryFeeCents: Cents
+  expressDeliveryFeeCents: Cents
   freeDeliveryThresholdCents: Cents
   appliedCode: { id: string; code: string } | null
+}
+
+export function baseFeeFor(
+  method: DeliveryMethodName,
+  settings: PricingSettings,
+): Cents {
+  return cents(
+    method === 'EXPRESS' ? settings.expressDeliveryFeeCents : settings.standardDeliveryFeeCents,
+  )
 }
 
 export function computeTotals(input: {
   lines: { product: PriceableProduct; qty: number }[]
   code: PriceableCode | null
   settings: PricingSettings
+  deliveryMethod?: DeliveryMethodName
 }): PricedBasket {
   const { settings } = input
+  const deliveryMethod = input.deliveryMethod ?? 'STANDARD'
 
   // 1. Line totals.
   const lines: PricedLine[] = input.lines.map(({ product, qty }) => {
@@ -108,10 +126,20 @@ export function computeTotals(input: {
   //    accident in a component: a S$210 basket reduced to S$189 by a code pays
   //    the delivery fee, because it no longer reaches the threshold in revenue
   //    terms. Pinned by a unit test with exactly that scenario.
+  //
+  //    The published rule is "orders above S$200 get free EXPRESS delivery".
+  //    Both speeds are waived at the threshold rather than express alone,
+  //    because the alternative is incoherent: a qualifying customer choosing
+  //    the SLOWER option would be the only one still paying. The threshold is
+  //    inclusive — a basket of exactly S$200 qualifies.
   const threshold = cents(settings.freeDeliveryThresholdCents)
   const freeDeliveryApplied = lines.length > 0 && discounted >= threshold
   const deliveryFeeCents =
-    lines.length === 0 ? ZERO : freeDeliveryApplied ? ZERO : cents(settings.deliveryFeeCents)
+    lines.length === 0
+      ? ZERO
+      : freeDeliveryApplied
+        ? ZERO
+        : baseFeeFor(deliveryMethod, settings)
 
   // 6. Total.
   const totalCents = addCents(discounted, deliveryFeeCents)
@@ -123,11 +151,13 @@ export function computeTotals(input: {
     lines,
     subtotalCents,
     discountCents,
+    deliveryMethod,
     deliveryFeeCents,
     totalCents,
     freeDeliveryApplied,
     amountToFreeDeliveryCents,
-    baseDeliveryFeeCents: cents(settings.deliveryFeeCents),
+    standardDeliveryFeeCents: cents(settings.standardDeliveryFeeCents),
+    expressDeliveryFeeCents: cents(settings.expressDeliveryFeeCents),
     freeDeliveryThresholdCents: threshold,
     appliedCode: input.code ? { id: input.code.id, code: input.code.code } : null,
   }

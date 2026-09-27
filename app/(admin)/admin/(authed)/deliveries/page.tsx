@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { listDeliveries, deliveryCostSummary } from '@/lib/domain/delivery-reporting'
 import { PageTitle, Card, Th, Td, Empty } from '@/components/admin/shell'
 import { formatSgd, cents } from '@/lib/money'
+import { formatSlotWithDate } from '@/lib/domain/delivery-slots'
+import { DELIVERY_STATUS_LABEL } from '@/lib/domain/fulfilment'
 
 export const metadata: Metadata = { title: 'Deliveries' }
 export const dynamic = 'force-dynamic'
@@ -24,7 +26,7 @@ export default async function DeliveriesPage({
     <>
       <PageTitle
         title="Deliveries"
-        subtitle="What the customer paid, against what the courier cost us."
+        subtitle="The run sheet, in slot order — and what each delivery cost against what it charged."
         right={
           <Link
             href="/api/admin/deliveries.csv"
@@ -36,14 +38,19 @@ export default async function DeliveriesPage({
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Deliveries booked" value={String(summary.deliveries)} />
+        <Stat label="Runs completed" value={String(summary.deliveries)} />
         <Stat
           label="Fees collected"
           value={formatSgd(cents(summary.feesCollectedCents), { alwaysCents: true })}
         />
         <Stat
-          label="Courier cost"
+          label="Delivery cost"
           value={formatSgd(cents(summary.actualCostCents), { alwaysCents: true })}
+          note={
+            summary.uncostedCount > 0
+              ? `${summary.uncostedCount} run${summary.uncostedCount === 1 ? '' : 's'} with no cost entered`
+              : undefined
+          }
         />
         <Stat
           label="Delivery margin"
@@ -68,18 +75,18 @@ export default async function DeliveriesPage({
               <tr>
                 <Th>Order</Th>
                 <Th>Status</Th>
-                <Th>Provider</Th>
-                <Th>Reference</Th>
+                <Th>Speed</Th>
+                <Th>Slot</Th>
                 <Th>To</Th>
                 <Th>Charged</Th>
                 <Th>Cost</Th>
                 <Th>Margin</Th>
-                <Th>Driver</Th>
+                <Th>Carried by</Th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
-                const cost = row.actualCostCents ?? row.estimatedCostCents
+                const cost = row.actualCostCents
                 const margin = cost === null ? null : row.feeChargedCents - cost
                 return (
                   <tr key={row.orderId} className="hover:bg-veil">
@@ -91,9 +98,16 @@ export default async function DeliveriesPage({
                         {row.reference}
                       </Link>
                     </Td>
-                    <Td className="mono-sm text-muted">{row.deliveryStatus}</Td>
-                    <Td className="mono-sm text-muted">{row.provider}</Td>
-                    <Td className="figure text-[0.8125rem] text-muted">{row.providerRef ?? '—'}</Td>
+                    <Td className="mono-sm text-muted">
+                      {DELIVERY_STATUS_LABEL[row.deliveryStatus as keyof typeof DELIVERY_STATUS_LABEL] ??
+                        row.deliveryStatus}
+                    </Td>
+                    <Td className="mono-sm text-muted">{row.deliveryMethod}</Td>
+                    <Td className="figure text-[0.8125rem] text-muted">
+                      {row.slotStart && row.slotEnd
+                        ? formatSlotWithDate({ start: row.slotStart, end: row.slotEnd })
+                        : '—'}
+                    </Td>
                     <Td className="figure text-muted">{row.postalCode}</Td>
                     <Td className="figure text-ink">
                       {formatSgd(cents(row.feeChargedCents), { alwaysCents: true })}
@@ -108,7 +122,7 @@ export default async function DeliveriesPage({
                     >
                       {margin === null ? '—' : formatSgd(cents(margin), { alwaysCents: true })}
                     </Td>
-                    <Td className="text-muted">{row.driverName ?? '—'}</Td>
+                    <Td className="text-muted">{row.courierRef ?? '—'}</Td>
                   </tr>
                 )
               })}

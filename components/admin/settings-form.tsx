@@ -9,7 +9,6 @@ export function SettingsForm({ settings }: { settings: SettingsMap }) {
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
-  const [autoDispatch, setAutoDispatch] = useState(settings.auto_dispatch_enabled)
 
   const pickup = settings.pickup_address
 
@@ -30,18 +29,28 @@ export function SettingsForm({ settings }: { settings: SettingsMap }) {
     >
       <section>
         <h2 className="mono mb-4 text-faint">Delivery pricing</h2>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field id="deliveryFeeSgd" label="Delivery fee (SGD)" required>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <Field id="standardDeliveryFeeSgd" label="Standard fee (SGD)" required>
             <Input
-              id="deliveryFeeSgd"
-              name="deliveryFeeSgd"
+              id="standardDeliveryFeeSgd"
+              name="standardDeliveryFeeSgd"
               inputMode="decimal"
-              defaultValue={(settings.delivery_fee_cents / 100).toFixed(2)}
+              defaultValue={(settings.standard_delivery_fee_cents / 100).toFixed(2)}
               required
               className="figure"
             />
           </Field>
-          <Field id="freeDeliveryThresholdSgd" label="Free delivery above (SGD)" required>
+          <Field id="expressDeliveryFeeSgd" label="Express fee (SGD)" required>
+            <Input
+              id="expressDeliveryFeeSgd"
+              name="expressDeliveryFeeSgd"
+              inputMode="decimal"
+              defaultValue={(settings.express_delivery_fee_cents / 100).toFixed(2)}
+              required
+              className="figure"
+            />
+          </Field>
+          <Field id="freeDeliveryThresholdSgd" label="Free delivery at (SGD)" required>
             <Input
               id="freeDeliveryThresholdSgd"
               name="freeDeliveryThresholdSgd"
@@ -53,65 +62,83 @@ export function SettingsForm({ settings }: { settings: SettingsMap }) {
           </Field>
         </div>
         <p className="mt-3 text-[0.8125rem] text-muted">
-          The threshold is assessed on the order value <strong>after</strong> any discount.
+          The threshold is assessed on the order value <strong>after</strong> any discount, and it
+          waives <strong>both</strong> speeds — a qualifying customer gets express at no charge.
         </p>
       </section>
 
       <section className="border-t border-line pt-7">
-        <h2 className="mono mb-4 text-faint">Courier dispatch</h2>
-
-        <label className="flex cursor-pointer items-start gap-3 border border-line-strong px-4 py-4">
-          <input
-            type="checkbox"
-            name="autoDispatch"
-            checked={autoDispatch}
-            onChange={(e) => setAutoDispatch(e.target.checked)}
-            className="mt-1"
-          />
-          <span>
-            <span className="text-[0.9375rem] font-medium text-ink">
-              Automatic delivery dispatch
-            </span>
-            <span className="mt-1 block text-[0.8125rem] leading-relaxed text-muted">
-              When on, a paid order books a courier automatically. When off, paid orders wait in
-              Ready for delivery until you book them by hand.
-            </span>
-          </span>
-        </label>
-
-        {autoDispatch ? (
-          <div className="mt-3 border border-[#9c3b2b]/40 bg-[#9c3b2b]/5 px-4 py-3">
-            <p className="mono text-[#9c3b2b]">Before you turn this on</p>
-            <p className="mt-2 text-[0.8125rem] leading-relaxed text-body">
-              Some WHIPLY products are pressurised N₂O cylinders. Confirm <strong>in writing</strong>{' '}
-              with the carrier what they will transport, under what packaging and on which vehicle
-              types, before enabling automatic dispatch.
-            </p>
-          </div>
-        ) : (
-          <p className="mono-sm mt-3 text-[#1f5d4c]">
-            Off — no courier is booked without a human. This is the shipped default.
-          </p>
-        )}
-
-        <div className="mt-5">
-          <Field id="vehicleType" label="Vehicle / service type" required>
+        <h2 className="mono mb-4 text-faint">Delivery slots</h2>
+        <p className="mb-4 text-[0.8125rem] leading-relaxed text-muted">
+          These four numbers decide what the slot picker offers and when the website stops taking
+          orders. Times are Singapore time, on the 24-hour clock.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Field id="deliveryFirstHour" label="First slot starts at" required>
             <Input
-              id="vehicleType"
-              name="vehicleType"
-              defaultValue={settings.lalamove_vehicle_type}
+              id="deliveryFirstHour"
+              name="deliveryFirstHour"
+              inputMode="numeric"
+              defaultValue={settings.delivery_first_hour}
+              required
+              className="figure"
+            />
+          </Field>
+          <Field id="deliveryLastSlotHour" label="Last slot starts at" required>
+            <Input
+              id="deliveryLastSlotHour"
+              name="deliveryLastSlotHour"
+              inputMode="numeric"
+              defaultValue={settings.delivery_last_slot_hour}
+              required
+              className="figure"
+            />
+          </Field>
+          <Field id="deliveryLeadMinutes" label="Notice needed (minutes)" required>
+            <Input
+              id="deliveryLeadMinutes"
+              name="deliveryLeadMinutes"
+              inputMode="numeric"
+              defaultValue={settings.delivery_lead_minutes}
+              required
+              className="figure"
+            />
+          </Field>
+          <Field id="orderCutoffHour" label="Orders close at" required>
+            <Input
+              id="orderCutoffHour"
+              name="orderCutoffHour"
+              inputMode="numeric"
+              defaultValue={settings.order_cutoff_hour}
               required
               className="figure"
             />
           </Field>
         </div>
+        <div className="mt-5 sm:max-w-xs">
+          <Field id="expressWindowMinutes" label="Express promise (minutes)" required>
+            <Input
+              id="expressWindowMinutes"
+              name="expressWindowMinutes"
+              inputMode="numeric"
+              defaultValue={settings.express_window_minutes}
+              required
+              className="figure"
+            />
+          </Field>
+        </div>
+        <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
+          Express only offers slots that start within the promise <em>and</em> past the notice
+          period, so it stops being offered before standard does each evening. Public holidays are
+          not excluded automatically — close the store for the day instead.
+        </p>
       </section>
 
       <section className="border-t border-line pt-7">
-        <h2 className="mono mb-4 text-faint">Warehouse pickup address</h2>
+        <h2 className="mono mb-4 text-faint">Dispatch address</h2>
         <p className="mb-4 text-[0.8125rem] text-muted">
-          Every courier booking starts here. A booking with no address fails with a message rather
-          than sending a driver nowhere.
+          Where every run starts. It appears on the packing slip and on the run sheet, so the
+          person driving knows where to load.
         </p>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field id="pickupLine1" label="Address line 1" className="sm:col-span-2">

@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest'
-import { db, resetDatabase, seedSettings, seedLaunchCatalogue, makeCode } from './helpers'
+import {
+  db,
+  resetDatabase,
+  seedSettings,
+  seedLaunchCatalogue,
+  makeCode,
+  aValidSlot,
+} from './helpers'
 
 /** Milestones E1–E7 and F1–F2. */
 
@@ -93,12 +100,13 @@ describe('derived customers view (E6 / §9.9)', () => {
     invalidateSettings()
   })
 
-  async function paidOrderFor(email: string, sku = 'WHP-N2O-640', code?: string) {
+  async function paidOrderFor(email: string, sku = 'WHP-N2O-640-1', code?: string) {
     const { createPendingOrder } = await import('@/lib/domain/orders')
     const { settlePaidPayment } = await import('@/lib/domain/payment-settlement')
     const { order } = await createPendingOrder({
       lines: [{ sku, qty: 1 }],
       codeInput: code ?? null,
+      delivery: aValidSlot(),
       contact: {
         name: 'Chef Tan',
         email,
@@ -110,8 +118,8 @@ describe('derived customers view (E6 / §9.9)', () => {
     await db.payment.create({
       data: {
         orderId: order.id,
-        provider: 'hitpay',
-        requestId: `req_${order.reference}`,
+        provider: 'stripe',
+        requestId: `pi_${order.reference}`,
         amountCents: order.totalCents,
         paymentStatus: 'PENDING',
       },
@@ -119,8 +127,8 @@ describe('derived customers view (E6 / §9.9)', () => {
     await settlePaidPayment({
       reference: order.reference,
       paidAmountCents: order.totalCents,
-      hitpayPaymentId: `pay_${order.reference}`,
-      method: 'card',
+      providerPaymentId: `ch_${order.reference}`,
+      method: 'paynow',
       actor: 'test',
     })
     return order
@@ -135,12 +143,12 @@ describe('derived customers view (E6 / §9.9)', () => {
     const customers = await derivedCustomers()
 
     expect(customers).toHaveLength(1)
-    expect(customers[0]).toMatchObject({ orderCount: 3, lifetimeValueCents: 5500 * 3 })
+    expect(customers[0]).toMatchObject({ orderCount: 3, lifetimeValueCents: 5000 * 3 })
   })
 
   it('lists the codes a customer has used', async () => {
     await makeCode({ code: 'WELCOME10', percentOff: 10 })
-    await paidOrderFor('chef@kitchen.sg', 'WHP-N2O-640', 'WELCOME10')
+    await paidOrderFor('chef@kitchen.sg', 'WHP-N2O-640-1', 'WELCOME10')
 
     const { derivedCustomers } = await import('@/lib/domain/admin-orders')
     const customers = await derivedCustomers()
@@ -150,8 +158,9 @@ describe('derived customers view (E6 / §9.9)', () => {
   it('EXCLUDES unpaid and cancelled orders — it is a record of business done', async () => {
     const { createPendingOrder } = await import('@/lib/domain/orders')
     await createPendingOrder({
-      lines: [{ sku: 'WHP-N2O-640', qty: 1 }],
+      lines: [{ sku: 'WHP-N2O-640-1', qty: 1 }],
       codeInput: null,
+      delivery: aValidSlot(),
       contact: {
         name: 'Never Paid',
         email: 'never@paid.sg',
@@ -187,8 +196,9 @@ describe('admin order queries (E2)', () => {
   async function order(name: string, email: string) {
     const { createPendingOrder } = await import('@/lib/domain/orders')
     const { order } = await createPendingOrder({
-      lines: [{ sku: 'WHP-N2O-640', qty: 1 }],
+      lines: [{ sku: 'WHP-N2O-640-1', qty: 1 }],
       codeInput: null,
+      delivery: aValidSlot(),
       contact: {
         name,
         email,
@@ -262,22 +272,48 @@ describe('settings drive the storefront (E6 / §4.5)', () => {
     const { setSetting, invalidateSettings } = await import('@/lib/domain/settings')
 
     invalidateSettings()
-    const before = await priceBasket({ lines: [{ sku: 'WHP-EQ-SCALE', qty: 1 }] })
-    expect(before.basket.deliveryFeeCents).toBe(0) // S$200 hits the S$200 threshold
+    // A S$220 two-pack clears the S$200 threshold.
+    const before = await priceBasket({ lines: [{ sku: 'WHP-N2O-2500-2', qty: 1 }] })
+    expect(before.basket.deliveryFeeCents).toBe(0)
 
     await setSetting('free_delivery_threshold_cents', 25000)
     invalidateSettings()
 
-    const after = await priceBasket({ lines: [{ sku: 'WHP-EQ-SCALE', qty: 1 }] })
-    expect(after.basket.deliveryFeeCents).toBe(2000) // S$200 no longer qualifies
+    const after = await priceBasket({ lines: [{ sku: 'WHP-N2O-2500-2', qty: 1 }] })
+    expect(after.basket.deliveryFeeCents).toBe(1000) // S$220 no longer qualifies
     expect(after.basket.freeDeliveryThresholdCents).toBe(25000)
+  })
+
+  it('a fee change alters BOTH speeds independently, with no deploy', async () => {
+    const { setSetting, invalidateSettings } = await import('@/lib/domain/settings')
+    const { priceBasket } = await import('@/lib/domain/basket')
+
+    await setSetting('express_delivery_fee_cents', 3500)
+    invalidateSettings()
+
+    const std = await priceBasket({ lines: [{ sku: 'WHP-N2O-640-1', qty: 1 }] })
+    const exp = await priceBasket({
+      lines: [{ sku: 'WHP-N2O-640-1', qty: 1 }],
+      deliveryMethod: 'EXPRESS',
+    })
+    expect(std.basket.deliveryFeeCents).toBe(1000)
+    expect(exp.basket.deliveryFeeCents).toBe(3500)
+  })
+
+  it('the slot rules are settings too, so the shop can close early', async () => {
+    const { setSetting, getSlotRules, invalidateSettings } = await import('@/lib/domain/settings')
+    await setSetting('order_cutoff_hour', 18)
+    invalidateSettings()
+    expect((await getSlotRules()).orderCutoffHour).toBe(18)
   })
 
   it('REFUSES an invalid setting rather than storing it', async () => {
     const { setSetting } = await import('@/lib/domain/settings')
-    await expect(setSetting('delivery_fee_cents', -100)).rejects.toThrow()
+    await expect(setSetting('standard_delivery_fee_cents', -100)).rejects.toThrow()
     await expect(setSetting('free_delivery_threshold_cents', 'free')).rejects.toThrow()
-    await expect(setSetting('auto_dispatch_enabled', 'yes')).rejects.toThrow()
+    await expect(setSetting('store_open', 'yes')).rejects.toThrow()
+    // 25 is not an hour.
+    await expect(setSetting('delivery_first_hour', 25)).rejects.toThrow()
   })
 
   it('the store kill switch is a setting, not a deploy', async () => {

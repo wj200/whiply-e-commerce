@@ -3,6 +3,7 @@ import {
   validateDiscountCode,
   normaliseCode,
   describeCode,
+  seasonPhase,
   type DiscountCodeRow,
 } from '@/lib/domain/discounts'
 
@@ -21,9 +22,22 @@ function timeCode(over: Partial<DiscountCodeRow> = {}): DiscountCodeRow {
     maxUses: null,
     usesCount: 0,
     attributionLabel: null,
+    seasonLabel: null,
     isActive: true,
     ...over,
   }
+}
+
+function seasonCode(over: Partial<DiscountCodeRow> = {}): DiscountCodeRow {
+  return timeCode({
+    code: 'XMAS26',
+    limitType: 'SEASONAL',
+    seasonLabel: 'Christmas 2026',
+    startsAt: new Date('2026-06-01T00:00:00Z'),
+    expiresAt: new Date('2026-06-30T00:00:00Z'),
+    maxUses: null,
+    ...over,
+  })
 }
 
 function useCode(over: Partial<DiscountCodeRow> = {}): DiscountCodeRow {
@@ -164,5 +178,69 @@ describe('describeCode', () => {
         useCode({ valueType: 'FIXED', percentOff: null, valueCents: 1500, usesCount: 2 }),
       ),
     ).toBe('S$15.00 off · 2/5 uses')
+  })
+})
+
+describe('SEASONAL codes — a campaign that switches itself on and off', () => {
+  it('applies inside its window', () => {
+    const r = validateDiscountCode(seasonCode(), opts)
+    expect(r.ok).toBe(true)
+  })
+
+  it('REFUSES before the season opens, naming the season and the date', () => {
+    const r = validateDiscountCode(
+      seasonCode({ startsAt: new Date('2026-12-01T00:00:00Z') }),
+      opts,
+    )
+    expect(r).toMatchObject({ ok: false, reason: 'NOT_STARTED' })
+    if (!r.ok) {
+      expect(r.message).toContain('Christmas 2026')
+      expect(r.message).toContain('1 Dec 2026')
+    }
+  })
+
+  it('REFUSES after the season closes, WITHOUT anyone disabling it', () => {
+    // This is the whole point of the limit type: nobody has to remember.
+    const r = validateDiscountCode(
+      seasonCode({
+        startsAt: new Date('2026-01-01T00:00:00Z'),
+        expiresAt: new Date('2026-02-01T00:00:00Z'),
+        isActive: true,
+      }),
+      opts,
+    )
+    expect(r).toMatchObject({ ok: false, reason: 'SEASON_ENDED' })
+    if (!r.ok) expect(r.message).toContain('Christmas 2026')
+  })
+
+  it('falls back to generic wording when the season was never named', () => {
+    const r = validateDiscountCode(
+      seasonCode({ seasonLabel: null, expiresAt: new Date('2026-02-01T00:00:00Z') }),
+      opts,
+    )
+    expect(r).toMatchObject({ ok: false, reason: 'SEASON_ENDED' })
+  })
+
+  it('is NOT limited by uses — that is a different limit type', () => {
+    const r = validateDiscountCode(seasonCode({ usesCount: 10_000 }), opts)
+    expect(r.ok).toBe(true)
+  })
+
+  it('still answers to the manual off switch', () => {
+    const r = validateDiscountCode(seasonCode({ isActive: false }), opts)
+    expect(r).toMatchObject({ ok: false, reason: 'INACTIVE' })
+  })
+
+  it('reports its phase for the admin list', () => {
+    expect(seasonPhase(seasonCode(), NOW)).toBe('RUNNING')
+    expect(seasonPhase(seasonCode({ startsAt: new Date('2026-12-01') }), NOW)).toBe('UPCOMING')
+    expect(seasonPhase(seasonCode({ expiresAt: new Date('2026-01-01') }), NOW)).toBe('ENDED')
+    expect(seasonPhase(timeCode(), NOW)).toBe('NOT_SEASONAL')
+  })
+
+  it('describes itself with the season and both dates', () => {
+    expect(describeCode(seasonCode())).toBe(
+      '10% off · Christmas 2026 · 1 Jun 2026 – 30 Jun 2026',
+    )
   })
 })

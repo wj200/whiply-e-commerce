@@ -3,6 +3,7 @@ import {
   normalisePhone,
   normaliseEmail,
   checkoutContactSchema,
+  resolveContactName,
 } from '@/lib/domain/contact'
 import { generateReference, isValidReference } from '@/lib/domain/reference'
 
@@ -53,11 +54,22 @@ describe('checkoutContactSchema', () => {
     }
   })
 
-  it('requires a name, email, phone and address line 1', () => {
-    expect(checkoutContactSchema.safeParse({ ...valid, name: 'J' }).success).toBe(false)
+  it('requires email, phone and address line 1', () => {
     expect(checkoutContactSchema.safeParse({ ...valid, email: 'not-an-email' }).success).toBe(false)
     expect(checkoutContactSchema.safeParse({ ...valid, phone: '61234567' }).success).toBe(false)
     expect(checkoutContactSchema.safeParse({ ...valid, addressLine1: '' }).success).toBe(false)
+  })
+
+  it('treats the NAME as optional — it is not on the brief', () => {
+    const { name: _n, ...noName } = valid
+    expect(checkoutContactSchema.safeParse(noName).success).toBe(true)
+    expect(checkoutContactSchema.safeParse({ ...valid, name: '' }).success).toBe(true)
+  })
+
+  it('falls back to the email local part so nothing downstream sees an empty name', () => {
+    expect(resolveContactName({ name: '  ', email: 'Mei.Ling@example.com' })).toBe('Mei.Ling')
+    expect(resolveContactName({ name: 'Ravi', email: 'r@example.com' })).toBe('Ravi')
+    expect(resolveContactName({ email: '@example.com' })).toBe('Customer')
   })
 
   it('allows line 2 and instructions to be absent', () => {
@@ -71,9 +83,10 @@ describe('checkoutContactSchema', () => {
     ).toBe(false)
   })
 
-  it('HAS NO self-collection or delivery-method field at all', () => {
+  it('HAS NO self-collection field at all', () => {
+    // The delivery SPEED is a separate schema validated against the clock;
+    // what must not exist here, or anywhere, is a way to opt out of delivery.
     const keys = Object.keys(checkoutContactSchema.shape)
-    expect(keys).not.toContain('deliveryMethod')
     expect(keys).not.toContain('selfCollection')
     expect(keys).not.toContain('pickup')
     // The address is mandatory, so no order can exist without one.

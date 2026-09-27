@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useBag } from './bag-context'
 import { useCart } from '@/lib/cart/context'
@@ -8,93 +9,30 @@ import { usePricedCart } from '@/lib/cart/use-priced-cart'
 import { formatSgd, cents } from '@/lib/money'
 import { productImageSrc } from '@/lib/media/product-image'
 import { inputClasses } from '@/components/ui/field'
-import { CheckoutFields, type FieldErrors } from './checkout-fields'
 import { ButtonLink } from '@/components/ui/button'
 
 /**
- * The bag. Slides in from the right and carries the whole purchase: line
- * items, promo code, totals, delivery details and Pay Now.
+ * The bag. Slides in from the right and carries the items, the promo code
+ * and a running total.
  *
- * It calls exactly the same endpoints as the /cart and /checkout pages —
- * /api/cart/price and /api/checkout — so the server remains the only price
- * authority (GUARD-1) regardless of which surface the customer uses.
+ * It deliberately does NOT take delivery details or start a payment. The
+ * flow is add to cart → checkout → pay, and putting the form in two places
+ * means keeping two forms correct; the drawer hands over to /checkout with
+ * any applied code in the URL.
+ *
+ * Totals here are indicative: delivery is priced at the standard rate until
+ * the customer picks a speed on the checkout page. The figure shown is
+ * always the server's (GUARD-1) — the drawer never adds up anything itself.
  */
 export function BagDrawer() {
   const { isOpen, closeBag } = useBag()
-  const { cart } = useCart()
   const [code, setCode] = useState<string | null>(null)
   const { data, loading, hydrated } = usePricedCart(code)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [errors, setErrors] = useState<FieldErrors>({})
-
   useEffect(() => {
     if (isOpen) panelRef.current?.focus()
   }, [isOpen])
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (submitting) return
-
-    const form = new FormData(event.currentTarget)
-    const contact = {
-      name: String(form.get('name') ?? ''),
-      email: String(form.get('email') ?? ''),
-      phone: String(form.get('phone') ?? ''),
-      addressLine1: String(form.get('addressLine1') ?? ''),
-      addressLine2: String(form.get('addressLine2') ?? ''),
-      postalCode: String(form.get('postalCode') ?? ''),
-      instructions: String(form.get('instructions') ?? ''),
-    }
-
-    setSubmitting(true)
-    setFormError(null)
-    setErrors({})
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lines: cart.lines,
-          contact,
-          code,
-          idempotencyKey: crypto.randomUUID(),
-        }),
-      })
-      const body = (await res.json()) as {
-        checkoutUrl?: string
-        error?: string
-        issues?: { path: string; message: string }[]
-      }
-
-      if (!res.ok) {
-        if (body.issues?.length) {
-          const next: FieldErrors = {}
-          for (const issue of body.issues) {
-            const key = issue.path.replace(/^contact\./, '')
-            if (!next[key]) next[key] = issue.message
-          }
-          setErrors(next)
-        }
-        setFormError(body.error ?? 'Something went wrong. Please try again.')
-        setSubmitting(false)
-        return
-      }
-
-      if (body.checkoutUrl) {
-        window.location.href = body.checkoutUrl
-        return
-      }
-      setFormError('Payment could not be started. Please try again.')
-      setSubmitting(false)
-    } catch {
-      setFormError('We could not reach the server. Please try again.')
-      setSubmitting(false)
-    }
-  }
 
   const isEmpty = hydrated && (!data || data.lines.length === 0)
 
@@ -151,7 +89,7 @@ export function BagDrawer() {
             <p className="mono text-faint">Loading…</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             <div className="px-6 sm:px-8">
               <ul className="divide-y divide-line">
                 {data.lines.map((line) => (
@@ -184,12 +122,14 @@ export function BagDrawer() {
                   }
                 />
                 <p className="mt-2 text-[0.8125rem] text-muted">
-                  Free above {formatSgd(cents(data.freeDeliveryThresholdCents))} after discounts.{' '}
-                  {formatSgd(cents(data.baseDeliveryFeeCents))} otherwise.
+                  Standard rate shown. Express is{' '}
+                  {formatSgd(cents(data.expressDeliveryFeeCents))}, and both are free above{' '}
+                  {formatSgd(cents(data.freeDeliveryThresholdCents))} after discounts. Choose your
+                  speed and slot at checkout.
                 </p>
               </div>
 
-              <div className="flex items-baseline justify-between border-t border-line py-6">
+              <div className="flex items-baseline justify-between border-t border-line pb-8 pt-6">
                 <span className="text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">
                   Estimated total
                 </span>
@@ -197,35 +137,25 @@ export function BagDrawer() {
                   {formatSgd(cents(data.totalCents), { alwaysCents: true })}
                 </span>
               </div>
-
-              <div className="border-t border-line pb-8 pt-7">
-                <p className="mono mb-5 text-faint">Delivery details / Singapore</p>
-                <CheckoutFields errors={errors} />
-
-                {formError ? (
-                  <p role="alert" className="mono-sm mt-5 border border-[#9c3b2b]/35 px-3 py-2.5 text-[#9c3b2b]">
-                    {formError}
-                  </p>
-                ) : null}
-              </div>
             </div>
 
             <div className="sticky bottom-0 border-t border-line bg-paper px-6 py-5 sm:px-8">
-              <button
-                type="submit"
-                disabled={submitting || loading}
-                className="flex h-[3.5rem] w-full items-center justify-between bg-ink px-6 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-body disabled:opacity-40"
+              <Link
+                href={data.appliedCode ? `/checkout?code=${encodeURIComponent(data.appliedCode.code)}` : '/checkout'}
+                onClick={closeBag}
+                aria-disabled={loading}
+                className="flex h-[3.5rem] w-full items-center justify-between bg-ink px-6 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-body"
               >
-                {submitting ? 'Starting payment…' : 'Pay now'}
+                Checkout
                 <span className="figure">
                   {formatSgd(cents(data.totalCents), { alwaysCents: true })}
                 </span>
-              </button>
+              </Link>
               <p className="mt-3 text-center text-[0.75rem] text-muted">
-                You will be taken to HitPay to pay securely. WHIPLY never sees your card details.
+                Next: delivery details, your slot, and PayNow.
               </p>
             </div>
-          </form>
+          </div>
         )}
       </div>
     </>

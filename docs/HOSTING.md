@@ -2,25 +2,95 @@
 
 Exact commands and clicks to get `wj200/whiply-e-commerce` running on a real
 domain. Assumes Vercel + Neon, which is what the build is written for. Roughly
-two hours of work, spread across whatever HitPay and Lalamove verification take.
+two hours of work, spread across whatever Stripe KYB and Meta business
+verification take — Meta's is the long pole, so start it on day one.
+
+> **Before anything else, read the box at the top of `docs/CREDENTIALS.md`.**
+> Stripe PayNow settles to a Stripe balance and then to a business bank
+> account. It cannot pay out to a personal PayNow number, and nothing in these
+> steps changes that.
 
 Order matters: the database must exist before the first deploy, because the
 build runs `prisma generate` and the app reads rows on the first request.
 
 ---
 
+## Step 0 — A preview deployment, without Stripe, Meta or a domain
+
+If what you want first is a **clickable URL to look at** rather than a shop
+that takes money, stop after this step. A Vercel *preview* deployment needs
+none of the live credentials below, because the app decides which rules to
+enforce from `VERCEL_ENV` rather than `NODE_ENV`.
+
+1. **Neon** (Step 1) — the build prerenders product pages, so a database has
+   to exist and be migrated. Do Step 1 and Step 4, then come back.
+2. **Vercel → Add New → Project** → import the repo. Do not deploy yet.
+3. Set these for the **Preview** environment only:
+
+   ```
+   DATABASE_URL              <Neon pooled>
+   DIRECT_DATABASE_URL       <Neon direct>
+   NEXT_PUBLIC_SITE_URL      https://<your-project>.vercel.app
+   AUTH_SECRET               openssl rand -base64 32
+   CRON_SECRET               openssl rand -hex 32
+   STRIPE_SECRET_KEY         sk_test_…          ← test key, or any sk_test_ placeholder
+   STRIPE_WEBHOOK_SECRET     whsec_placeholder
+   ```
+
+   That is the whole list. No Resend, no WhatsApp, no Turnstile, no live
+   Stripe key — a preview enforces none of them.
+4. Deploy. Push the branch and Vercel builds a preview URL for it.
+
+**What works on a preview:** the entire storefront — catalogue, product pages,
+cart, the checkout form, delivery speeds and the slot picker, the bulk-order
+form, and the whole admin console after `npm run admin:create`.
+
+**What does not:** paying. With a test Stripe key you reach a real Stripe
+PayNow QR page, but nothing confirms the order, because there is no webhook
+endpoint pointed at the preview URL. Add one in Stripe's dashboard against the
+preview URL with its own signing secret if you want to exercise payment end to
+end; otherwise treat the preview as a design and flow review.
+
+---
+
 ## Step 1 — Database (Neon)
 
-1. Sign up at **neon.tech**. Create a project, region **Singapore (ap-southeast-1)**.
-   Region matters: the database should sit near the functions that read it.
-2. Name the database `whiply`.
-3. From **Connection Details**, copy **both** strings:
-   - **Pooled** (contains `-pooler`) → this is `DATABASE_URL`
-   - **Direct** (no `-pooler`) → this is `DIRECT_DATABASE_URL`
+1. Sign up at **neon.tech**. Create a project, region **AWS Asia Pacific 1
+   (Singapore)**. Region matters: the database should sit near the functions
+   that read it, and it cannot be changed afterwards.
+2. Name the **project** whatever you like — `whiply` is fine. Neon creates a
+   database called **`neondb`** inside it and a role called
+   **`neondb_owner`**. **Leave both alone.** The database name travels in the
+   connection string, so nothing in this app cares what it is called.
+3. Get the two connection strings. They are **not** on the Branch overview
+   page — click the green **Connect** button at the top of the left sidebar.
+   The dialog that opens has a **connection pooling** toggle, and that toggle
+   is the only difference between the two strings you need:
+
+   | Toggle | String contains | Copy it into |
+   |---|---|---|
+   | **On** | `-pooler` in the host | `DATABASE_URL` |
+   | **Off** | no `-pooler` | `DIRECT_DATABASE_URL` |
+
+   So: copy it once with pooling **on**, flip the toggle, copy it again. They
+   differ by those seven characters and nothing else:
+
+   ```
+   # pooled — DATABASE_URL
+   postgresql://neondb_owner:PASSWORD@ep-xxx-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+
+   # direct — DIRECT_DATABASE_URL
+   postgresql://neondb_owner:PASSWORD@ep-xxx-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+   ```
+
+   Keep whatever query parameters Neon gives you (`sslmode`,
+   `channel_binding`) — do not trim them.
 
    Getting these the wrong way round causes connection exhaustion under mild
-   load. The pooled one is for the app; the direct one is for migrations.
+   load. The pooled one is for the app; the direct one is for migrations,
+   because Prisma takes advisory locks that a pooler will not hold.
 4. **Settings → enable point-in-time restore.** Note the retention window.
+   (On the free plan this is a day or so; that is enough to launch on.)
 
 ---
 
@@ -46,7 +116,105 @@ Do this before the first deploy: production **refuses to start** without it.
 
 ---
 
-## Step 4 — Vercel project
+## Step 3b — Stripe, PayNow only
+
+1. Sign up at **stripe.com**, choose **Singapore** as the country. This cannot
+   be changed later without a new account.
+2. Complete **KYB**: UEN / ACRA business profile, director identity, and the
+   **business** bank account that payouts land in.
+3. **Settings → Payment methods → enable PayNow.** The integration asks for
+   `paynow` and nothing else, so what else is enabled in the dashboard does not
+   change what customers are offered — but turning cards off keeps the
+   dashboard honest about what you take.
+4. **Developers → API keys** → reveal the **live secret key** →
+   `STRIPE_SECRET_KEY`. It starts `sk_live_`; the deploy rejects `sk_test_` in
+   production.
+5. The webhook signing secret comes later, in Step 9 — it does not exist until
+   the endpoint does.
+
+---
+
+## Step 3c — WhatsApp Business Platform
+
+Start this first in wall-clock time; it finishes last.
+
+1. **business.facebook.com** → create a Business account for the shop.
+2. **Business verification** — upload the ACRA profile and proof of address.
+   This is the step that takes days.
+3. **developers.facebook.com** → Create App → **Business** → add the
+   **WhatsApp** product.
+4. **API Setup** → register the sending phone number. It must not already be on
+   a consumer WhatsApp or WhatsApp Business app account; if it is, delete that
+   account first, which cannot be undone.
+5. Copy the **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`.
+6. **Business settings → System users** → create one, assign the app with
+   `whatsapp_business_messaging`, and **generate a permanent token** →
+   `WHATSAPP_ACCESS_TOKEN`. The 24-hour token on the API Setup page will expire
+   mid-week and the alerts will stop with no other symptom.
+7. Set `WHATSAPP_BUSINESS_NUMBER` to the shop's **receiving** number in E.164,
+   e.g. `+6591234567`. It may be the same number as the sender or a different
+   one; either works.
+8. **Submit the message template.** The exact body and its four parameters are
+   in `docs/CREDENTIALS.md`. Without an approved template the API returns 200
+   and delivers nothing.
+
+> **Launching before Meta approves.** Business verification takes days to
+> weeks, and waiting for it to go live is usually the wrong trade. Set
+> **`WHATSAPP_ALERTS_DISABLED=true`** in Production and the three
+> `WHATSAPP_*` credentials above become unnecessary: the site starts, orders
+> are taken, receipts still go out, and no order alert is sent. The admin
+> order page says *Alerts switched off* instead of *Not yet*, so nobody hunts
+> for a failure that is a setting.
+>
+> It must be the exact string `true` — `TRUE`, `1` and `yes` all leave alerts
+> **on**, because a typo here would silently remove the only thing that tells
+> you an order arrived.
+>
+> **You will be watching the admin console for orders until you remove it.**
+> Deleting the variable is the last item on the go-live checklist.
+
+---
+
+## Step 4 — Run the migrations and seed — BEFORE the first deploy
+
+**Order matters here, and getting it wrong fails the build.** The storefront's
+category pages and product pages are prerendered at build time, so
+`next build` *reads the database*. An unreachable or unmigrated database is a
+failed deploy; a migrated-but-unseeded one ships an empty shop that stays empty
+until the next build.
+
+Vercel's build does **not** run migrations (deliberately — a build should not
+mutate a production database). Run them yourself, from your laptop, using the
+**direct** connection string, before you create the Vercel project:
+
+```bash
+git clone https://github.com/wj200/whiply-e-commerce
+cd whiply-e-commerce && git checkout main
+npm ci
+
+export DATABASE_URL="<Neon DIRECT string>"
+export DIRECT_DATABASE_URL="<Neon DIRECT string>"
+
+npx prisma migrate deploy     # creates 14 tables + the CHECK constraints
+npx tsx prisma/seed.ts        # 13 products, 12 settings
+npm run admin:create owner@whiply.sg
+```
+
+`admin:create` prints an `otpauth://` URI — scan it, then type the 6-digit code
+back. It will not create the account until a code verifies.
+
+Confirm:
+
+```bash
+npx prisma studio    # or psql: SELECT sku, price_cents FROM products;
+```
+
+You should see thirteen products and twelve settings rows, with the 640 g
+single at `4000` cents and the twelve-pack at `35000`.
+
+---
+
+## Step 5 — Vercel project
 
 1. Sign up at **vercel.com** with the business email; enable 2FA.
 2. **Add New → Project → Import Git Repository** → `wj200/whiply-e-commerce`.
@@ -66,29 +234,39 @@ DIRECT_DATABASE_URL       <Neon direct>
 NEXT_PUBLIC_SITE_URL      https://<your-domain>
 AUTH_SECRET               <openssl rand -base64 32>
 CRON_SECRET               <openssl rand -hex 32>
-HITPAY_API_BASE           <live base URL>
-HITPAY_API_KEY            <live key>
-HITPAY_WEBHOOK_SALT       <webhook salt>
-LALAMOVE_API_BASE         https://rest.lalamove.com
-LALAMOVE_API_KEY          <key>
-LALAMOVE_API_SECRET       <secret>
-LALAMOVE_MARKET           SG
-LALAMOVE_WEBHOOK_SECRET   <secret>
+STRIPE_SECRET_KEY         <sk_live_… from step 3b>
+STRIPE_WEBHOOK_SECRET     <whsec_… from step 9>
+RESEND_API_KEY            <step 7>
+RESEND_FROM_EMAIL         WHIPLY <orders@<your-domain>>
+WHATSAPP_PHONE_NUMBER_ID  <from step 3c>
+WHATSAPP_ACCESS_TOKEN     <permanent System User token>
+WHATSAPP_BUSINESS_NUMBER  +65XXXXXXXX
+WHATSAPP_TEMPLATE_NAME    whiply_order_alert
+#  …or, if Meta has not approved you yet, drop the four WHATSAPP_* lines
+#  above and set this single variable instead:
+# WHATSAPP_ALERTS_DISABLED true
 TURNSTILE_SITE_KEY        <from step 3>
 TURNSTILE_SECRET_KEY      <from step 3>
-RESEND_API_KEY            <step 7>
 OPERATOR_ALERT_EMAIL      <your inbox>
 UPSTASH_REDIS_REST_URL    <step 6>
 UPSTASH_REDIS_REST_TOKEN  <step 6>
 SENTRY_DSN                <step 8>
 ```
 
+`STRIPE_WEBHOOK_SECRET` does not exist until Step 9, and the deploy will not
+start without it. Put any `whsec_placeholder` in for the first deploy, then
+replace it with the real value and redeploy once the endpoint exists.
+
 **Two things that bite here:**
 
 - `NEXT_PUBLIC_SITE_URL` is inlined into the client bundle **at build time**.
   Changing it later requires a redeploy, not just an env edit.
 - **Never put live keys in the Preview environment.** Preview builds from every
-  branch and is the easiest place to leak a production credential.
+  branch and is the easiest place to leak a production credential. Vercel sets
+  `NODE_ENV=production` on preview builds too, so the app decides which rules
+  to enforce from **`VERCEL_ENV`** — a preview happily runs on `sk_test_` keys
+  with no Resend or WhatsApp credentials at all, and only the real production
+  deployment demands the full set.
 
 5. **Deploy.** If it fails, read the error — the env guard names every missing or
    malformed variable at once rather than one per attempt.
@@ -98,38 +276,6 @@ SENTRY_DSN                <step 8>
 6. **Settings → Domains → Add** your domain. Vercel prints the exact A / CNAME
    records. Add them at your registrar.
 7. Wait for the certificate. Confirm `http://` redirects to `https://`.
-
----
-
-## Step 5 — Run the migrations
-
-Vercel's build does **not** run migrations (deliberately — a build should not
-mutate a production database). Run them yourself, from your laptop, using the
-**direct** connection string:
-
-```bash
-git clone https://github.com/wj200/whiply-e-commerce
-cd whiply-e-commerce
-npm ci
-
-export DATABASE_URL="<Neon DIRECT string>"
-export DIRECT_DATABASE_URL="<Neon DIRECT string>"
-
-npx prisma migrate deploy     # creates 14 tables + the CHECK constraints
-npx tsx prisma/seed.ts        # 4 products, 8 settings
-npm run admin:create owner@whiply.sg
-```
-
-`admin:create` prints an `otpauth://` URI — scan it, then type the 6-digit code
-back. It will not create the account until a code verifies.
-
-Confirm:
-
-```bash
-npx prisma studio    # or psql: SELECT sku, price_cents FROM products;
-```
-
-You should see four products and eight settings rows.
 
 ---
 
@@ -144,14 +290,16 @@ correct on a single instance.
 
 ---
 
-## Step 7 — Resend (the only email this system sends)
+## Step 7 — Resend (customer receipts and operator alerts)
 
 1. Sign up at **resend.com** → **Domains → Add Domain**.
 2. Add the **SPF, DKIM and DMARC** records it gives you at your registrar.
-3. Wait for **Verified**. Without this the alert lands in spam, which is
-   indistinguishable from the feature not working.
+3. Wait for **Verified**. Without this every receipt lands in spam, which a
+   paying customer experiences as not getting one.
 4. **API Keys → Create** → `RESEND_API_KEY`.
-5. Set `OPERATOR_ALERT_EMAIL` to an address you read on a phone.
+5. Set `RESEND_FROM_EMAIL` to a sender on the verified domain, e.g.
+   `WHIPLY <orders@whiply.sg>`. This is what customers reply to.
+6. Set `OPERATOR_ALERT_EMAIL` to an address you read on a phone.
 
 ---
 
@@ -164,47 +312,57 @@ correct on a single instance.
 
 ---
 
-## Step 9 — Webhooks (after the domain is live)
+## Step 9 — The Stripe webhook (after the domain is live)
 
-Both providers need a public HTTPS URL, so this comes after Step 4.
+This is the only webhook in the system, and it is the only thing that makes a
+payment true. It needs a public HTTPS URL, so it comes after Step 4.
 
-**HitPay dashboard → Webhooks:**
-```
-https://<your-domain>/api/webhooks/hitpay
-```
+1. **Stripe → Developers → Webhooks → Add endpoint.**
+2. Endpoint URL:
+   ```
+   https://<your-domain>/api/webhooks/stripe
+   ```
+3. Subscribe to exactly these three events — no more:
+   - `payment_intent.succeeded`
+   - `payment_intent.payment_failed`
+   - `payment_intent.canceled`
 
-**Lalamove dashboard → Webhooks:**
-```
-https://<your-domain>/api/webhooks/lalamove
-```
+   The handler acknowledges anything else with a 200 and ignores it, so extra
+   subscriptions cost nothing but noise.
+4. **Reveal the signing secret** (`whsec_…`) → set `STRIPE_WEBHOOK_SECRET` in
+   Vercel → **redeploy**. An env change alone does not take effect.
 
-Verify they respond (401 is correct — an unsigned request must be refused):
+Verify it refuses an unsigned request:
 
 ```bash
-curl -i -X POST https://<your-domain>/api/webhooks/hitpay -d 'test=1'
+curl -i -X POST https://<your-domain>/api/webhooks/stripe -d '{}'
 # expect HTTP/1.1 401
 ```
 
-> **If any tunnel URL from local development is still registered here, payments
-> will succeed and orders will never confirm.** It is the most common launch-day
-> failure. Check both dashboards.
+401 is the correct answer and proves the guard is live. A 200 here means the
+signing secret is wrong and **anyone on the internet can mark orders paid** —
+stop and fix it before taking a real payment.
+
+> **If a tunnel URL from local development is still registered here, payments
+> will succeed and orders will never confirm.** It is the most common
+> launch-day failure. Stripe lets you keep several endpoints; delete the ones
+> that are not this domain.
 
 ---
 
 ## Step 10 — Cron
 
-`vercel.json` already declares six jobs; Vercel picks them up on deploy.
+`vercel.json` already declares five jobs; Vercel picks them up on deploy.
 
 | Path | Schedule | Job |
 |---|---|---|
-| `/api/cron/dispatch` | every 5 min | Sweep queued dispatches |
-| `/api/cron/reconcile-payments` | every 10 min | Recover missed HitPay webhooks |
-| `/api/cron/reconcile-deliveries` | every 15 min | Poll quiet deliveries |
+| `/api/cron/reconcile-payments` | every 10 min | Ask Stripe directly about orders stuck unpaid — recovers a missed webhook |
+| `/api/cron/retry-notifications` | every 10 min | Re-send any receipt or WhatsApp alert whose stamp is still NULL |
 | `/api/cron/expire-orders` | every 15 min | Cancel stale unpaid orders |
 | `/api/cron/low-stock` | hourly | Email the operator |
 | `/api/cron/prune-webhooks` | monthly | Prune de-duplication rows |
 
-1. **Settings → Cron Jobs** — confirm all six are listed.
+1. **Settings → Cron Jobs** — confirm all five are listed.
 2. Confirm your plan allows 5- and 10-minute intervals (the Hobby plan does not).
 3. Vercel sends `Authorization: Bearer $CRON_SECRET`; the routes verify it in
    constant time. A missing or wrong secret returns 401.
@@ -222,16 +380,20 @@ curl -s https://<domain>/robots.txt | head -3
 
 Then in a browser:
 
-- [ ] Homepage shows four products at the agreed prices
-- [ ] The delivery banner reads your configured threshold
-- [ ] Add to bag → the drawer totals correctly
+- [ ] Homepage shows the finalised catalogue at the published prices
+- [ ] The delivery panel reads S$10 / S$20 / free at S$200 from settings
+- [ ] Add to bag → the drawer totals correctly and links to `/checkout`
+- [ ] Checkout offers standard and express, and a slot list for each
+- [ ] Express offers nothing after 9pm SGT; the site refuses orders after 10pm
 - [ ] `/admin/login` accepts password + TOTP
-- [ ] **Admin → Settings: `auto_dispatch_enabled` is OFF**
+- [ ] **Admin → Settings**: the slot hours and both fees are what you expect
 - [ ] Bulk enquiry submits and appears in Admin → Enquiries
 
 Finally run the **real-money smoke test** in `docs/GO-LIVE.md` Phase 7 — a live
-S$1 purchase and refund. It is the only thing that proves the account
-configuration is right, and none of it can be simulated.
+low-value purchase and refund, paid by scanning the PayNow QR in your own
+banking app. It is the only thing that proves the Stripe account, the webhook
+secret, the Resend sender and the WhatsApp template are all right at once, and
+none of it can be simulated.
 
 ---
 
@@ -242,7 +404,7 @@ The app is a standard Next.js server — nothing in it is Vercel-specific except
 
 - `npm ci && npm run build && npm start`
 - Node 22, port from `$PORT`
-- Replace Vercel Cron with any scheduler hitting the six routes with the
+- Replace Vercel Cron with any scheduler hitting the five routes with the
   `Authorization: Bearer $CRON_SECRET` header
 
 Managed Postgres and the same environment variables apply unchanged.

@@ -4,14 +4,24 @@ import type { OrderStatus } from '@/lib/generated/prisma'
 import { assertTransition } from './state-machine'
 import { generateReference } from './reference'
 import { priceBasket } from './basket'
-import { normaliseEmail, normalisePhone, type CheckoutContact } from './contact'
+import {
+  normaliseEmail,
+  normalisePhone,
+  resolveContactName,
+  type CheckoutContact,
+} from './contact'
+import type { DeliveryMethodName } from './delivery-slots'
 import type { CartLine } from '@/lib/cart/types'
 import { assertBasketInvariants } from './pricing'
 
 export class CheckoutError extends Error {
   constructor(
     message: string,
-    public readonly code: 'EMPTY_BASKET' | 'STORE_CLOSED' | 'INVALID_CONTACT',
+    public readonly code:
+      | 'EMPTY_BASKET'
+      | 'STORE_CLOSED'
+      | 'INVALID_CONTACT'
+      | 'INVALID_SLOT',
   ) {
     super(message)
     this.name = 'CheckoutError'
@@ -25,6 +35,9 @@ export type CreatedOrder = {
   subtotalCents: number
   discountCents: number
   deliveryFeeCents: number
+  deliveryMethod: DeliveryMethodName
+  deliverySlotStart: Date
+  deliverySlotEnd: Date
 }
 
 /**
@@ -40,6 +53,7 @@ export async function createPendingOrder(input: {
   lines: CartLine[]
   contact: CheckoutContact
   codeInput: string | null
+  delivery: { method: DeliveryMethodName; start: Date; end: Date }
   now?: Date
 }): Promise<{ order: CreatedOrder; codeError: string | null; issues: unknown[] }> {
   const phone = normalisePhone(input.contact.phone)
@@ -48,6 +62,7 @@ export async function createPendingOrder(input: {
   const { basket, issues, codeError } = await priceBasket({
     lines: input.lines,
     codeInput: input.codeInput,
+    deliveryMethod: input.delivery.method,
     now: input.now,
   })
 
@@ -68,7 +83,10 @@ export async function createPendingOrder(input: {
       discountCents: basket.discountCents,
       deliveryFeeCents: basket.deliveryFeeCents,
       totalCents: basket.totalCents,
-      contactName: input.contact.name,
+      deliveryMethod: input.delivery.method,
+      deliverySlotStart: input.delivery.start,
+      deliverySlotEnd: input.delivery.end,
+      contactName: resolveContactName(input.contact),
       contactEmail: input.contact.email.trim(),
       contactPhone: phone,
       addressLine1: input.contact.addressLine1,
@@ -97,6 +115,8 @@ export async function createPendingOrder(input: {
           detail: {
             itemCount: basket.lines.length,
             code: basket.appliedCode?.code ?? null,
+            deliveryMethod: input.delivery.method,
+            slotStart: input.delivery.start.toISOString(),
           },
         },
       },
@@ -111,6 +131,9 @@ export async function createPendingOrder(input: {
       subtotalCents: order.subtotalCents,
       discountCents: order.discountCents,
       deliveryFeeCents: order.deliveryFeeCents,
+      deliveryMethod: input.delivery.method,
+      deliverySlotStart: input.delivery.start,
+      deliverySlotEnd: input.delivery.end,
     },
     codeError,
     issues,

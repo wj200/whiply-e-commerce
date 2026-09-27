@@ -1,6 +1,6 @@
 import 'server-only'
 import { prisma } from '@/lib/db/client'
-import { refundPayment } from '@/lib/payments/hitpay'
+import { refundPaymentIntent } from '@/lib/payments/stripe'
 import { transitionOrder, recordOrderEvent } from '@/lib/domain/orders'
 import { cents } from '@/lib/money'
 import { logger } from '@/lib/observability/logger'
@@ -8,8 +8,14 @@ import { logger } from '@/lib/observability/logger'
 /**
  * Blueprint §6.9 — refunds.
  *
- * WHIPLY references the HitPay payment id and nothing else; it never touches
- * card data in a refund any more than in a payment (GUARD-4).
+ * WHIPLY references the Stripe PaymentIntent id and nothing else; it never
+ * touches card or bank data in a refund any more than in a payment (GUARD-4).
+ *
+ * A PayNow refund is a bank transfer Stripe initiates back to the payer's
+ * account. It is not instant — expect it to land in a few business days —
+ * and Stripe can refuse it outright if the payer's bank rejects the credit.
+ * Neither case is an error in this code, and both are surfaced rather than
+ * retried.
  *
  * Stock restoration is a SEPARATE, recorded decision: goods already delivered
  * are with the customer, so restoring stock is the operator's call and the
@@ -34,15 +40,17 @@ export async function refundOrder(input: {
   if (!order.payment || order.payment.paymentStatus !== 'PAID') {
     return { ok: false, reason: 'This order has no completed payment to refund.' }
   }
-  if (!order.payment.paymentId) {
-    return { ok: false, reason: 'No provider payment id recorded — refund in the HitPay dashboard.' }
-  }
-
+  // The refund is keyed off the PaymentIntent, which always exists, rather
+  // than the Charge id, which is only written once the intent succeeded.
   let refundId: string
   try {
-    const result = await refundPayment({
-      paymentId: order.payment.paymentId,
+    const result = await refundPaymentIntent({
+      paymentIntentId: order.payment.requestId,
       amount: cents(order.totalCents),
+      reason: 'requested_by_customer',
+      // Stripe deduplicates on this for 24h, so a double-click in the admin
+      // console cannot pay the customer back twice.
+      idempotencyKey: `refund:${order.reference}`,
     })
     refundId = result.refundId
   } catch (error) {
@@ -52,7 +60,7 @@ export async function refundOrder(input: {
     })
     return {
       ok: false,
-      reason: 'The payment provider refused the refund. Check the HitPay dashboard.',
+      reason: 'Stripe refused the refund. Check the payment in the Stripe dashboard.',
     }
   }
 
@@ -118,10 +126,13 @@ export async function cancelOrder(input: {
   })
 
   if (!order) return { ok: false, reason: 'Order not found.' }
-  if (order.delivery?.providerRef) {
+  if (
+    order.delivery &&
+    ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.delivery.deliveryStatus)
+  ) {
     return {
       ok: false,
-      reason: 'Cancel the courier booking first — the goods may already be moving.',
+      reason: 'This order has already left — mark the delivery failed or returned first.',
     }
   }
 
