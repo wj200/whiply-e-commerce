@@ -141,7 +141,11 @@ replace it with the real value and redeploy once the endpoint exists.
 - `NEXT_PUBLIC_SITE_URL` is inlined into the client bundle **at build time**.
   Changing it later requires a redeploy, not just an env edit.
 - **Never put live keys in the Preview environment.** Preview builds from every
-  branch and is the easiest place to leak a production credential.
+  branch and is the easiest place to leak a production credential. Vercel sets
+  `NODE_ENV=production` on preview builds too, so the app decides which rules
+  to enforce from **`VERCEL_ENV`** — a preview happily runs on `sk_test_` keys
+  with no Resend or WhatsApp credentials at all, and only the real production
+  deployment demands the full set.
 
 5. **Deploy.** If it fails, read the error — the env guard names every missing or
    malformed variable at once rather than one per attempt.

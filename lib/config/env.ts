@@ -15,6 +15,12 @@ const required = (name: string) =>
 
 const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /**
+   * Set by Vercel to 'production' | 'preview' | 'development'. It exists
+   * because NODE_ENV alone cannot answer the question this module asks —
+   * see `isProductionRuntime` below.
+   */
+  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
 
   DATABASE_URL: required('DATABASE_URL'),
   DIRECT_DATABASE_URL: z.string().min(1).optional(),
@@ -76,6 +82,30 @@ export class EnvError extends Error {
 }
 
 /**
+ * Is this the real, money-taking deployment?
+ *
+ * NOT the same question as `NODE_ENV === 'production'`, and the difference
+ * is a launch-blocker rather than a nicety. Next.js forces NODE_ENV to
+ * 'production' for any `next build`, and Vercel does the same for **preview**
+ * deployments — so keying the hardening below off NODE_ENV alone would demand
+ * a LIVE Stripe key, live Turnstile keys and live WhatsApp credentials on
+ * every pull-request preview. That is the exact arrangement §14.1 of the
+ * blueprint says must never exist, enforced backwards.
+ *
+ * So when Vercel tells us which environment this is, believe it. Everywhere
+ * else — a container host, a VPS, a laptop running `next start` — VERCEL_ENV
+ * is absent and NODE_ENV is the only signal there is, which is the correct
+ * conservative answer: those deployments harden.
+ */
+export function isProductionRuntime(env: {
+  NODE_ENV: string
+  VERCEL_ENV?: string
+}): boolean {
+  if (env.VERCEL_ENV) return env.VERCEL_ENV === 'production'
+  return env.NODE_ENV === 'production'
+}
+
+/**
  * Production tightens the rules that only matter once real money moves:
  * live secrets must not be placeholders, and the site URL must be https.
  */
@@ -90,7 +120,7 @@ export function parseEnv(raw: NodeJS.ProcessEnv): Env {
   const env = result.data
   const issues: string[] = []
 
-  if (env.NODE_ENV === 'production') {
+  if (isProductionRuntime(env)) {
     if (!env.NEXT_PUBLIC_SITE_URL.startsWith('https://')) {
       issues.push('NEXT_PUBLIC_SITE_URL must be https in production')
     }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseEnv, EnvError } from '@/lib/config/env'
+import { parseEnv, EnvError, isProductionRuntime } from '@/lib/config/env'
 
 const VALID = {
   NODE_ENV: 'production',
@@ -127,5 +127,38 @@ describe('parseEnv', () => {
         STRIPE_SECRET_KEY: 'sk_test_abc',
       } as NodeJS.ProcessEnv),
     ).not.toThrow()
+  })
+})
+
+describe('isProductionRuntime — which deployment is the real one', () => {
+  it('trusts VERCEL_ENV over NODE_ENV when Vercel sets it', () => {
+    // Vercel forces NODE_ENV=production for PREVIEW builds too. Keying the
+    // hardening off NODE_ENV alone would demand live Stripe, Turnstile and
+    // WhatsApp credentials on every pull-request preview — the exact
+    // arrangement the blueprint says must never exist.
+    expect(isProductionRuntime({ NODE_ENV: 'production', VERCEL_ENV: 'preview' })).toBe(false)
+    expect(isProductionRuntime({ NODE_ENV: 'production', VERCEL_ENV: 'development' })).toBe(false)
+    expect(isProductionRuntime({ NODE_ENV: 'production', VERCEL_ENV: 'production' })).toBe(true)
+  })
+
+  it('falls back to NODE_ENV off Vercel, which is the conservative answer', () => {
+    expect(isProductionRuntime({ NODE_ENV: 'production' })).toBe(true)
+    expect(isProductionRuntime({ NODE_ENV: 'development' })).toBe(false)
+  })
+
+  it('lets a PREVIEW deploy run on test keys', () => {
+    const preview: Record<string, string> = { ...(VALID as Record<string, string>) }
+    preview.VERCEL_ENV = 'preview'
+    preview.STRIPE_SECRET_KEY = 'sk_test_preview'
+    preview.NEXT_PUBLIC_SITE_URL = 'https://whiply-git-branch.vercel.app'
+    delete preview.WHATSAPP_ACCESS_TOKEN
+    delete preview.RESEND_API_KEY
+    expect(() => parseEnv(preview as NodeJS.ProcessEnv)).not.toThrow()
+  })
+
+  it('still refuses a TEST key on the real production deployment', () => {
+    expect(() =>
+      parseEnv({ ...VALID, VERCEL_ENV: 'production', STRIPE_SECRET_KEY: 'sk_test_oops' }),
+    ).toThrow(/TEST key/)
   })
 })
