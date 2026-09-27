@@ -5,6 +5,7 @@ import { sendReceiptEmail } from '@/lib/notify/receipt-email'
 import { sendBusinessOrderAlert } from '@/lib/notify/whatsapp'
 import type { NotifiableOrder } from '@/lib/notify/order-summary'
 import { logger } from '@/lib/observability/logger'
+import { env, whatsappAlertsEnabled } from '@/lib/config/env'
 
 /**
  * Blueprint §6.5 — EVERYTHING THAT HAPPENS AFTER PAYMENT IS TRUE.
@@ -39,7 +40,7 @@ const ORDER_INCLUDE = {
 export type AfterPaymentResult = {
   fulfilmentOpened: boolean
   receipt: 'SENT' | 'ALREADY_SENT' | 'FAILED' | 'NO_PAYMENT'
-  whatsapp: 'SENT' | 'ALREADY_SENT' | 'FAILED' | 'NO_PAYMENT'
+  whatsapp: 'SENT' | 'ALREADY_SENT' | 'FAILED' | 'NO_PAYMENT' | 'DISABLED'
 }
 
 export async function runAfterPayment(orderId: string): Promise<AfterPaymentResult> {
@@ -92,7 +93,16 @@ export async function runAfterPayment(orderId: string): Promise<AfterPaymentResu
   }
 
   // ── Business WhatsApp alert ───────────────────────────────────────
-  if (order.payment.notifiedAt) {
+  //
+  // The switch is read HERE rather than only inside the adapter, so that the
+  // decision to send and the sweep's decision to retry come from one place.
+  // An adapter that is switched off should not be called at all.
+  if (!whatsappAlertsEnabled(env())) {
+    // The stamp stays NULL: nothing was sent, and recording otherwise would
+    // be a lie the admin console would repeat. The sweep below knows to stop
+    // looking while the switch is off.
+    result.whatsapp = 'DISABLED'
+  } else if (order.payment.notifiedAt) {
     result.whatsapp = 'ALREADY_SENT'
   } else {
     try {
@@ -127,11 +137,19 @@ export async function sweepPendingNotifications(limit = 25): Promise<{
 }> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60_000)
 
+  // With alerts switched off, an unsent alert is not a failure to retry, so
+  // the sweep stops considering it — otherwise every paid order would be
+  // re-examined every ten minutes for a week to do nothing.
+  const alertsOn = whatsappAlertsEnabled(env())
+  const pending = alertsOn
+    ? [{ receiptSentAt: null }, { notifiedAt: null }]
+    : [{ receiptSentAt: null }]
+
   const due = await prisma.payment.findMany({
     where: {
       paymentStatus: 'PAID',
       paidAt: { gte: since },
-      OR: [{ receiptSentAt: null }, { notifiedAt: null }],
+      OR: pending,
     },
     select: { orderId: true },
     orderBy: { paidAt: 'asc' },

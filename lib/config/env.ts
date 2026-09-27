@@ -50,6 +50,19 @@ const baseSchema = z.object({
   /** Empty string = send free-form text instead of a template (dev only). */
   WHATSAPP_TEMPLATE_NAME: z.string().default('whiply_order_alert'),
   WHATSAPP_TEMPLATE_LANGUAGE: z.string().default('en'),
+  /**
+   * The deliberate opt-out. Meta's business verification takes days to weeks,
+   * and refusing to deploy at all until it lands is a worse outcome than
+   * launching on email receipts alone — so this exists, and it is an
+   * environment variable rather than an admin setting because it is a deploy
+   * decision, not something to toggle during service.
+   *
+   * It must be the exact string 'true'. Anything else — 'TRUE', '1', 'yes',
+   * an empty value — leaves alerts ON and the credential requirement in
+   * force, because a typo here should fail loudly rather than silently
+   * disable the only thing that tells the shop an order arrived.
+   */
+  WHATSAPP_ALERTS_DISABLED: z.string().optional(),
 
   R2_ACCOUNT_ID: z.string().optional(),
   R2_BUCKET: z.string().optional(),
@@ -103,6 +116,16 @@ export function isProductionRuntime(env: {
 }): boolean {
   if (env.VERCEL_ENV) return env.VERCEL_ENV === 'production'
   return env.NODE_ENV === 'production'
+}
+
+/**
+ * Are business order alerts switched on for this deployment?
+ *
+ * Exactly the string 'true' turns them off. See WHATSAPP_ALERTS_DISABLED
+ * above for why a near-miss like 'TRUE' deliberately does NOT.
+ */
+export function whatsappAlertsEnabled(env: { WHATSAPP_ALERTS_DISABLED?: string }): boolean {
+  return env.WHATSAPP_ALERTS_DISABLED !== 'true'
 }
 
 /**
@@ -169,28 +192,33 @@ export function parseEnv(raw: NodeJS.ProcessEnv): Env {
     }
 
     // Likewise the business alert: the whole point is that someone finds out
-    // an order came in.
-    const whatsapp = [
-      ['WHATSAPP_PHONE_NUMBER_ID', env.WHATSAPP_PHONE_NUMBER_ID],
-      ['WHATSAPP_ACCESS_TOKEN', env.WHATSAPP_ACCESS_TOKEN],
-      ['WHATSAPP_BUSINESS_NUMBER', env.WHATSAPP_BUSINESS_NUMBER],
-    ] as const
-    for (const [name, value] of whatsapp) {
-      if (!value) {
+    // an order came in. Unless it has been switched off ON PURPOSE, in which
+    // case none of its credentials are needed and demanding them would block
+    // a launch for no benefit.
+    if (whatsappAlertsEnabled(env)) {
+      const whatsapp = [
+        ['WHATSAPP_PHONE_NUMBER_ID', env.WHATSAPP_PHONE_NUMBER_ID],
+        ['WHATSAPP_ACCESS_TOKEN', env.WHATSAPP_ACCESS_TOKEN],
+        ['WHATSAPP_BUSINESS_NUMBER', env.WHATSAPP_BUSINESS_NUMBER],
+      ] as const
+      for (const [name, value] of whatsapp) {
+        if (!value) {
+          issues.push(
+            `${name} is required in production — without it no order notification ` +
+              'reaches the business WhatsApp number. Set WHATSAPP_ALERTS_DISABLED=true ' +
+              'to launch without alerts on purpose.',
+          )
+        }
+      }
+      if (env.WHATSAPP_BUSINESS_NUMBER && !/^\+[1-9]\d{7,14}$/.test(env.WHATSAPP_BUSINESS_NUMBER)) {
+        issues.push('WHATSAPP_BUSINESS_NUMBER must be E.164, e.g. +6591234567')
+      }
+      if (!env.WHATSAPP_TEMPLATE_NAME) {
         issues.push(
-          `${name} is required in production — without it no order notification ` +
-            'reaches the business WhatsApp number',
+          'WHATSAPP_TEMPLATE_NAME must be set in production — a business-initiated ' +
+            'message outside a 24-hour session window must use an approved template',
         )
       }
-    }
-    if (env.WHATSAPP_BUSINESS_NUMBER && !/^\+[1-9]\d{7,14}$/.test(env.WHATSAPP_BUSINESS_NUMBER)) {
-      issues.push('WHATSAPP_BUSINESS_NUMBER must be E.164, e.g. +6591234567')
-    }
-    if (!env.WHATSAPP_TEMPLATE_NAME) {
-      issues.push(
-        'WHATSAPP_TEMPLATE_NAME must be set in production — a business-initiated ' +
-          'message outside a 24-hour session window must use an approved template',
-      )
     }
   }
 

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { parseEnv, EnvError, isProductionRuntime } from '@/lib/config/env'
+import {
+  parseEnv,
+  EnvError,
+  isProductionRuntime,
+  whatsappAlertsEnabled,
+} from '@/lib/config/env'
 
 const VALID = {
   NODE_ENV: 'production',
@@ -160,5 +165,61 @@ describe('isProductionRuntime — which deployment is the real one', () => {
     expect(() =>
       parseEnv({ ...VALID, VERCEL_ENV: 'production', STRIPE_SECRET_KEY: 'sk_test_oops' }),
     ).toThrow(/TEST key/)
+  })
+})
+
+describe('WHATSAPP_ALERTS_DISABLED — launching before Meta approves', () => {
+  function withoutWhatsApp(): Record<string, string> {
+    const copy = { ...(VALID as Record<string, string>) }
+    for (const key of [
+      'WHATSAPP_PHONE_NUMBER_ID',
+      'WHATSAPP_ACCESS_TOKEN',
+      'WHATSAPP_BUSINESS_NUMBER',
+    ]) {
+      delete copy[key]
+    }
+    return copy
+  }
+
+  it('lets production start with NO WhatsApp credentials when switched off', () => {
+    const off: Record<string, string> = { ...withoutWhatsApp() }
+    off.WHATSAPP_ALERTS_DISABLED = 'true'
+    const env = parseEnv(off as NodeJS.ProcessEnv)
+    expect(whatsappAlertsEnabled(env)).toBe(false)
+  })
+
+  it('still refuses when the credentials are simply missing', () => {
+    expect(() => parseEnv(withoutWhatsApp() as NodeJS.ProcessEnv)).toThrow(
+      /WHATSAPP_PHONE_NUMBER_ID/,
+    )
+  })
+
+  it('names the escape hatch in the error, so the fix is discoverable', () => {
+    expect(() => parseEnv(withoutWhatsApp() as NodeJS.ProcessEnv)).toThrow(
+      /WHATSAPP_ALERTS_DISABLED=true/,
+    )
+  })
+
+  it('takes ONLY the exact string "true" — a near miss must not disable alerts', () => {
+    // A typo here would silently remove the only thing that tells the shop an
+    // order arrived, so anything but 'true' leaves alerts on AND keeps the
+    // credential requirement in force.
+    for (const value of ['TRUE', 'True', '1', 'yes', 'on', '', ' true']) {
+      expect(whatsappAlertsEnabled({ WHATSAPP_ALERTS_DISABLED: value })).toBe(true)
+      const near: Record<string, string> = { ...withoutWhatsApp() }
+      near.WHATSAPP_ALERTS_DISABLED = value
+      expect(() => parseEnv(near as NodeJS.ProcessEnv)).toThrow(/WHATSAPP_PHONE_NUMBER_ID/)
+    }
+  })
+
+  it('defaults to alerts ON when the variable is absent entirely', () => {
+    expect(whatsappAlertsEnabled({})).toBe(true)
+  })
+
+  it('does not disable the RECEIPT — a customer still gets their invoice', () => {
+    const copy: Record<string, string> = withoutWhatsApp()
+    delete copy.RESEND_API_KEY
+    copy.WHATSAPP_ALERTS_DISABLED = 'true'
+    expect(() => parseEnv(copy as NodeJS.ProcessEnv)).toThrow(/RESEND_API_KEY/)
   })
 })

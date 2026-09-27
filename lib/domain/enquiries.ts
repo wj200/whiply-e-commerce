@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db/client'
 import { normalisePhone, type EnquiryInput } from './contact'
 import { sendOperatorEmail } from '@/lib/notify/operator-email'
 import { logger } from '@/lib/observability/logger'
-import { env } from '@/lib/config/env'
+import { env, isProductionRuntime } from '@/lib/config/env'
 
 /**
  * Blueprint §8 — bulk order enquiry.
@@ -70,13 +70,19 @@ async function notifyOperator(
 
 /**
  * §8.3 — Turnstile, verified SERVER-SIDE. The widget alone stops nothing.
- * When no secret is configured (local development) verification is skipped
- * and that fact is logged, so it can never silently pass in production.
+ * When no secret is configured verification is skipped and that fact is
+ * logged, so it can never silently pass on the real deployment.
+ *
+ * The environment test is `isProductionRuntime`, NOT `NODE_ENV`, for the same
+ * reason as §14.2: Vercel sets NODE_ENV=production on PREVIEW builds too, so
+ * keying off it would fail every enquiry on a preview that quite reasonably
+ * has no Turnstile keys — making the lead form untestable on the one
+ * deployment built for testing it.
  */
 export async function verifyTurnstile(token: string | null, ip: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
+    if (isProductionRuntime({ NODE_ENV: process.env.NODE_ENV ?? 'development', VERCEL_ENV: process.env.VERCEL_ENV })) {
       logger.critical('turnstile.not_configured_in_production')
       return false
     }

@@ -15,18 +15,82 @@ build runs `prisma generate` and the app reads rows on the first request.
 
 ---
 
+## Step 0 — A preview deployment, without Stripe, Meta or a domain
+
+If what you want first is a **clickable URL to look at** rather than a shop
+that takes money, stop after this step. A Vercel *preview* deployment needs
+none of the live credentials below, because the app decides which rules to
+enforce from `VERCEL_ENV` rather than `NODE_ENV`.
+
+1. **Neon** (Step 1) — the build prerenders product pages, so a database has
+   to exist and be migrated. Do Step 1 and Step 4, then come back.
+2. **Vercel → Add New → Project** → import the repo. Do not deploy yet.
+3. Set these for the **Preview** environment only:
+
+   ```
+   DATABASE_URL              <Neon pooled>
+   DIRECT_DATABASE_URL       <Neon direct>
+   NEXT_PUBLIC_SITE_URL      https://<your-project>.vercel.app
+   AUTH_SECRET               openssl rand -base64 32
+   CRON_SECRET               openssl rand -hex 32
+   STRIPE_SECRET_KEY         sk_test_…          ← test key, or any sk_test_ placeholder
+   STRIPE_WEBHOOK_SECRET     whsec_placeholder
+   ```
+
+   That is the whole list. No Resend, no WhatsApp, no Turnstile, no live
+   Stripe key — a preview enforces none of them.
+4. Deploy. Push the branch and Vercel builds a preview URL for it.
+
+**What works on a preview:** the entire storefront — catalogue, product pages,
+cart, the checkout form, delivery speeds and the slot picker, the bulk-order
+form, and the whole admin console after `npm run admin:create`.
+
+**What does not:** paying. With a test Stripe key you reach a real Stripe
+PayNow QR page, but nothing confirms the order, because there is no webhook
+endpoint pointed at the preview URL. Add one in Stripe's dashboard against the
+preview URL with its own signing secret if you want to exercise payment end to
+end; otherwise treat the preview as a design and flow review.
+
+---
+
 ## Step 1 — Database (Neon)
 
-1. Sign up at **neon.tech**. Create a project, region **Singapore (ap-southeast-1)**.
-   Region matters: the database should sit near the functions that read it.
-2. Name the database `whiply`.
-3. From **Connection Details**, copy **both** strings:
-   - **Pooled** (contains `-pooler`) → this is `DATABASE_URL`
-   - **Direct** (no `-pooler`) → this is `DIRECT_DATABASE_URL`
+1. Sign up at **neon.tech**. Create a project, region **AWS Asia Pacific 1
+   (Singapore)**. Region matters: the database should sit near the functions
+   that read it, and it cannot be changed afterwards.
+2. Name the **project** whatever you like — `whiply` is fine. Neon creates a
+   database called **`neondb`** inside it and a role called
+   **`neondb_owner`**. **Leave both alone.** The database name travels in the
+   connection string, so nothing in this app cares what it is called.
+3. Get the two connection strings. They are **not** on the Branch overview
+   page — click the green **Connect** button at the top of the left sidebar.
+   The dialog that opens has a **connection pooling** toggle, and that toggle
+   is the only difference between the two strings you need:
+
+   | Toggle | String contains | Copy it into |
+   |---|---|---|
+   | **On** | `-pooler` in the host | `DATABASE_URL` |
+   | **Off** | no `-pooler` | `DIRECT_DATABASE_URL` |
+
+   So: copy it once with pooling **on**, flip the toggle, copy it again. They
+   differ by those seven characters and nothing else:
+
+   ```
+   # pooled — DATABASE_URL
+   postgresql://neondb_owner:PASSWORD@ep-xxx-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+
+   # direct — DIRECT_DATABASE_URL
+   postgresql://neondb_owner:PASSWORD@ep-xxx-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+   ```
+
+   Keep whatever query parameters Neon gives you (`sslmode`,
+   `channel_binding`) — do not trim them.
 
    Getting these the wrong way round causes connection exhaustion under mild
-   load. The pooled one is for the app; the direct one is for migrations.
+   load. The pooled one is for the app; the direct one is for migrations,
+   because Prisma takes advisory locks that a pooler will not hold.
 4. **Settings → enable point-in-time restore.** Note the retention window.
+   (On the free plan this is a day or so; that is enough to launch on.)
 
 ---
 
@@ -93,6 +157,21 @@ Start this first in wall-clock time; it finishes last.
 8. **Submit the message template.** The exact body and its four parameters are
    in `docs/CREDENTIALS.md`. Without an approved template the API returns 200
    and delivers nothing.
+
+> **Launching before Meta approves.** Business verification takes days to
+> weeks, and waiting for it to go live is usually the wrong trade. Set
+> **`WHATSAPP_ALERTS_DISABLED=true`** in Production and the three
+> `WHATSAPP_*` credentials above become unnecessary: the site starts, orders
+> are taken, receipts still go out, and no order alert is sent. The admin
+> order page says *Alerts switched off* instead of *Not yet*, so nobody hunts
+> for a failure that is a setting.
+>
+> It must be the exact string `true` — `TRUE`, `1` and `yes` all leave alerts
+> **on**, because a typo here would silently remove the only thing that tells
+> you an order arrived.
+>
+> **You will be watching the admin console for orders until you remove it.**
+> Deleting the variable is the last item on the go-live checklist.
 
 ---
 
@@ -163,6 +242,9 @@ WHATSAPP_PHONE_NUMBER_ID  <from step 3c>
 WHATSAPP_ACCESS_TOKEN     <permanent System User token>
 WHATSAPP_BUSINESS_NUMBER  +65XXXXXXXX
 WHATSAPP_TEMPLATE_NAME    whiply_order_alert
+#  …or, if Meta has not approved you yet, drop the four WHATSAPP_* lines
+#  above and set this single variable instead:
+# WHATSAPP_ALERTS_DISABLED true
 TURNSTILE_SITE_KEY        <from step 3>
 TURNSTILE_SECRET_KEY      <from step 3>
 OPERATOR_ALERT_EMAIL      <your inbox>

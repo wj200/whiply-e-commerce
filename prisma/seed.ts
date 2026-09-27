@@ -23,6 +23,12 @@ const prisma = new PrismaClient()
  * change (§4.5).
  */
 
+/**
+ * The product NAME says "Cream Charger"; the specs and the description still
+ * say food-grade N₂O, because that is what is in the cylinder. Shortening the
+ * name is presentation; shortening the safety information would not be
+ * (§18, GUARD-6).
+ */
 const SAFETY_NOTE =
   'Pressurised container. Keep away from heat and direct sunlight. ' +
   'Use only with equipment rated for this cylinder. Follow the handling and ' +
@@ -56,7 +62,7 @@ const PRODUCTS = [
   {
     sku: 'WHP-N2O-640-1',
     slug: 'n2o-cream-charger-640g-single',
-    name: '640g N₂O Cream Charger — 1 Tank',
+    name: '640g Cream Charger — 1 Tank',
     category: ProductCategory.CREAM_CHARGERS,
     cardLabel: 'A little extraordinary',
     shortDesc: '640 g · single tank · culinary use only',
@@ -67,12 +73,12 @@ const PRODUCTS = [
     stockQty: 120,
     lowStockAt: 20,
     sortOrder: 10,
-    imageAlt: 'Food-grade 640 gram N₂O cream charger cylinder',
+    imageAlt: 'A piped rosette of freshly whipped cream on a plate',
   },
   {
     sku: 'WHP-N2O-640-6',
     slug: 'n2o-cream-charger-640g-6-pack',
-    name: '640g N₂O Cream Charger — 6 Tanks',
+    name: '640g Cream Charger — 6 Tanks',
     category: ProductCategory.CREAM_CHARGERS,
     cardLabel: 'The service pack',
     shortDesc: '640 g × 6 · culinary use only',
@@ -83,12 +89,12 @@ const PRODUCTS = [
     stockQty: 40,
     lowStockAt: 6,
     sortOrder: 11,
-    imageAlt: 'Six-pack of food-grade 640 gram N₂O cream chargers',
+    imageAlt: 'A piped rosette of freshly whipped cream on a plate',
   },
   {
     sku: 'WHP-N2O-640-12',
     slug: 'n2o-cream-charger-640g-12-pack',
-    name: '640g N₂O Cream Charger — 12 Tanks',
+    name: '640g Cream Charger — 12 Tanks',
     category: ProductCategory.CREAM_CHARGERS,
     cardLabel: 'The full case',
     shortDesc: '640 g × 12 · culinary use only',
@@ -99,14 +105,14 @@ const PRODUCTS = [
     stockQty: 20,
     lowStockAt: 4,
     sortOrder: 12,
-    imageAlt: 'Case of twelve food-grade 640 gram N₂O cream chargers',
+    imageAlt: 'A piped rosette of freshly whipped cream on a plate',
   },
 
   // ── 2.5 kg cream chargers ──────────────────────────────────────────
   {
     sku: 'WHP-N2O-2500-1',
     slug: 'n2o-cream-charger-2-5kg-single',
-    name: '2.5kg N₂O Cream Charger — 1 Tank',
+    name: '2.5kg Cream Charger — 1 Tank',
     category: ProductCategory.CREAM_CHARGERS,
     cardLabel: 'More room to create',
     shortDesc: '2.5 kg · single tank · culinary use only',
@@ -117,12 +123,12 @@ const PRODUCTS = [
     stockQty: 60,
     lowStockAt: 10,
     sortOrder: 20,
-    imageAlt: 'Food-grade 2.5 kilogram N₂O cream charger cylinder',
+    imageAlt: 'A spoonful of thick whipped cream',
   },
   {
     sku: 'WHP-N2O-2500-2',
     slug: 'n2o-cream-charger-2-5kg-2-pack',
-    name: '2.5kg N₂O Cream Charger — 2 Tanks',
+    name: '2.5kg Cream Charger — 2 Tanks',
     category: ProductCategory.CREAM_CHARGERS,
     cardLabel: 'The pair',
     shortDesc: '2.5 kg × 2 · culinary use only',
@@ -133,12 +139,12 @@ const PRODUCTS = [
     stockQty: 25,
     lowStockAt: 5,
     sortOrder: 21,
-    imageAlt: 'Two food-grade 2.5 kilogram N₂O cream charger cylinders',
+    imageAlt: 'A spoonful of thick whipped cream',
   },
   {
     sku: 'WHP-N2O-2500-4',
     slug: 'n2o-cream-charger-2-5kg-4-pack',
-    name: '2.5kg N₂O Cream Charger — 4 Tanks',
+    name: '2.5kg Cream Charger — 4 Tanks',
     category: ProductCategory.CREAM_CHARGERS,
     cardLabel: 'The volume case',
     shortDesc: '2.5 kg × 4 · culinary use only',
@@ -149,7 +155,7 @@ const PRODUCTS = [
     stockQty: 12,
     lowStockAt: 3,
     sortOrder: 22,
-    imageAlt: 'Case of four food-grade 2.5 kilogram N₂O cream charger cylinders',
+    imageAlt: 'A spoonful of thick whipped cream',
   },
 
   // ── Cream ──────────────────────────────────────────────────────────
@@ -269,17 +275,19 @@ const PRODUCTS = [
   {
     sku: 'WHP-EQ-SCALE',
     slug: 'precision-digital-weighing-scale',
-    name: 'Digital Precision Scale with Timer',
+    name: 'Precision Digital Scale',
     category: ProductCategory.BAKING_EQUIPMENT,
     cardLabel: 'The essential',
     shortDesc: 'Measured to perfection.',
     description:
-      'A precision digital weighing scale with a built-in timer, for bakery and pastry ' +
-      'work where consistency depends on accurate measurement and accurate proving. ' +
-      'Specifications reflect the supplier documentation for the current stock.',
+      'A precision digital weighing scale for bakery and pastry work, where consistency ' +
+      'depends on accurate measurement. Stainless steel platform, backlit display, tare ' +
+      'and unit selection. Specifications reflect the supplier documentation for the ' +
+      'current stock.',
     specs: [
       { label: 'Type', value: 'Digital precision bench scale' },
-      { label: 'Features', value: 'Integrated timer' },
+      { label: 'Platform', value: 'Stainless steel' },
+      { label: 'Features', value: 'Tare · unit selection · backlit display' },
       { label: 'Use', value: 'Bakery and pastry measurement' },
     ],
     unitsPerPack: 1,
@@ -287,7 +295,7 @@ const PRODUCTS = [
     stockQty: 15,
     lowStockAt: 3,
     sortOrder: 41,
-    imageAlt: 'Digital precision weighing scale on a clean kitchen work surface',
+    imageAlt: 'A stainless steel precision digital kitchen scale with a backlit display',
   },
   {
     sku: 'WHP-EQ-MIXER',
@@ -308,7 +316,7 @@ const PRODUCTS = [
     stockQty: 8,
     lowStockAt: 2,
     sortOrder: 42,
-    imageAlt: 'Industrial stand mixer in a professional bakery',
+    imageAlt: 'A stainless steel industrial planetary stand mixer with a whisk attachment',
   },
 ]
 

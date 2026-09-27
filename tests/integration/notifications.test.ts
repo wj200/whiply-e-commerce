@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest'
 import {
   db,
   resetDatabase,
@@ -223,7 +223,7 @@ describe('what the notifications actually say', () => {
     const { receiptText } = await import('@/lib/notify/receipt-email')
     const text = receiptText(await notifiable())
 
-    expect(text).toContain('640g N₂O Cream Charger — 1 Tank')
+    expect(text).toContain('640g Cream Charger — 1 Tank')
     expect(text).toContain('S$80.00') // 2 × S$40
     expect(text).toContain('Total paid: S$90.00') // + S$10 standard delivery
     expect(text).toContain('Standard (2–3 working days)')
@@ -256,7 +256,7 @@ describe('what the notifications actually say', () => {
       expect(p.length).toBeGreaterThan(0)
     }
     expect(params[1]).toBe('S$90.00')
-    expect(params[3]).toContain('2 × 640g N₂O Cream Charger — 1 Tank')
+    expect(params[3]).toContain('2 × 640g Cream Charger — 1 Tank')
   })
 
   it('the free-form alert carries the address and the contact', async () => {
@@ -266,5 +266,103 @@ describe('what the notifications actually say', () => {
     expect(text).toContain('12 Kitchen Road')
     expect(text).toContain('chef@kitchen.sg')
     expect(text).toContain('+6591234567')
+  })
+})
+
+describe('alerts switched off deliberately (WHATSAPP_ALERTS_DISABLED)', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+    await seedSettings()
+    await seedLaunchCatalogue()
+    const { invalidateSettings } = await import('@/lib/domain/settings')
+    invalidateSettings()
+    receipt.calls = 0
+    receipt.ok = true
+    alert.calls = 0
+    alert.ok = true
+  })
+
+  afterEach(async () => {
+    delete process.env.WHATSAPP_ALERTS_DISABLED
+    const { resetEnvCache } = await import('@/lib/config/env')
+    resetEnvCache()
+  })
+
+  async function disableAlerts() {
+    Object.assign(process.env, { WHATSAPP_ALERTS_DISABLED: 'true' })
+    const { resetEnvCache } = await import('@/lib/config/env')
+    resetEnvCache()
+  }
+
+  it('still sends the receipt, and reports the alert as DISABLED', async () => {
+    await disableAlerts()
+    const order = await paidOrder()
+    const { runAfterPayment } = await import('@/lib/jobs/after-payment')
+
+    expect(await runAfterPayment(order.id)).toMatchObject({
+      fulfilmentOpened: true,
+      receipt: 'SENT',
+      whatsapp: 'DISABLED',
+    })
+  })
+
+  it('leaves notified_at NULL rather than claiming a message was sent', async () => {
+    await disableAlerts()
+    const order = await paidOrder()
+    const { runAfterPayment } = await import('@/lib/jobs/after-payment')
+    await runAfterPayment(order.id)
+
+    const payment = await db.payment.findUniqueOrThrow({ where: { orderId: order.id } })
+    expect(payment.notifiedAt).toBeNull()
+    expect(payment.receiptSentAt).not.toBeNull()
+  })
+
+  it('STOPS the sweep re-examining the order every ten minutes for a week', async () => {
+    await disableAlerts()
+    const order = await paidOrder()
+    const { runAfterPayment, sweepPendingNotifications } = await import(
+      '@/lib/jobs/after-payment'
+    )
+    await runAfterPayment(order.id)
+
+    // notified_at is NULL, but with alerts off that is not a failure to retry.
+    expect((await sweepPendingNotifications()).considered).toBe(0)
+  })
+
+  it('still sweeps a FAILED receipt while alerts are off', async () => {
+    await disableAlerts()
+    receipt.ok = false
+    const order = await paidOrder()
+    const { runAfterPayment, sweepPendingNotifications } = await import(
+      '@/lib/jobs/after-payment'
+    )
+    await runAfterPayment(order.id)
+
+    receipt.ok = true
+    expect((await sweepPendingNotifications()).considered).toBe(1)
+    const payment = await db.payment.findUniqueOrThrow({ where: { orderId: order.id } })
+    expect(payment.receiptSentAt).not.toBeNull()
+  })
+
+  it('picks the order back up once alerts are switched on again', async () => {
+    await disableAlerts()
+    const order = await paidOrder()
+    const { runAfterPayment, sweepPendingNotifications } = await import(
+      '@/lib/jobs/after-payment'
+    )
+    await runAfterPayment(order.id)
+    expect(alert.calls).toBe(0)
+
+    // Meta approval lands; the switch comes off. Orders paid in the last week
+    // with no alert are swept up — documented behaviour, and the reason the
+    // sweep's window is a week rather than forever.
+    delete process.env.WHATSAPP_ALERTS_DISABLED
+    const { resetEnvCache } = await import('@/lib/config/env')
+    resetEnvCache()
+
+    expect((await sweepPendingNotifications()).considered).toBe(1)
+    expect(alert.calls).toBe(1)
+    const payment = await db.payment.findUniqueOrThrow({ where: { orderId: order.id } })
+    expect(payment.notifiedAt).not.toBeNull()
   })
 })

@@ -64,6 +64,9 @@ Nothing below works around this. Decide it first.
 | `TURNSTILE_SECRET_KEY` | Cloudflare → Turnstile | |
 | `WHATSAPP_TEMPLATE_NAME` | You (must match Meta) | Defaults to `whiply_order_alert`. Empty string is rejected in production. |
 
+**The four WhatsApp rows above are waived** if you set
+`WHATSAPP_ALERTS_DISABLED=true` — see below.
+
 > **Why Resend and WhatsApp block the deploy rather than degrading.**
 > Both fail *silently*: without a Resend key, every paying customer gets no
 > invoice; without WhatsApp credentials, no one is told an order came in. In
@@ -118,8 +121,33 @@ silently stops. An integration test asserts the parameters stay single-line,
 because Meta rejects a parameter containing a newline or four consecutive
 spaces.
 
-Approval takes minutes to a day. Until it lands you can set
+Approval takes minutes to a day — but only *after* business verification,
+which takes days to weeks. Until it lands you can set
 `WHATSAPP_TEMPLATE_NAME=""` **in development only** to send free-form text.
+
+### Launching before any of this is ready
+
+`WHATSAPP_ALERTS_DISABLED=true` is the deliberate opt-out. With it set:
+
+- Production starts with **no** `WHATSAPP_*` credentials at all.
+- Orders are taken and **receipts still go out** — the customer side is
+  unaffected, because that is the half that must never silently break.
+- No order alert is sent, and none is queued: the ten-minute retry sweep
+  skips the WhatsApp dimension entirely rather than re-examining every paid
+  order for a week to do nothing.
+- The admin order page reads **"Alerts switched off"**, not "Not yet", so
+  nobody goes hunting for a failure that is a setting.
+
+Two things to know before you rely on it:
+
+1. **It must be the exact string `true`.** `TRUE`, `True`, `1`, `yes` and a
+   leading space all leave alerts **on** and keep the credential requirement
+   in force. A typo that silently removed your only order notification would
+   be the worst possible behaviour, so near-misses fail loudly instead.
+2. **Until you remove it, the admin console is how you learn an order came
+   in.** Watch it. Removing the variable is the last item on the go-live
+   checklist, and when you do, the sweep picks up any order paid in the
+   previous week that never got an alert.
 
 ---
 

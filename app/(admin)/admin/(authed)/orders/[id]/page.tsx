@@ -15,6 +15,7 @@ import {
 import { DELIVERY_STATUS_LABEL } from '@/lib/domain/fulfilment'
 import { formatSlotWithDate } from '@/lib/domain/delivery-slots'
 import { methodLabel } from '@/lib/notify/order-summary'
+import { env, whatsappAlertsEnabled } from '@/lib/config/env'
 
 export const metadata: Metadata = { title: 'Order' }
 export const dynamic = 'force-dynamic'
@@ -29,6 +30,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   const delivery = order.delivery
   const nextStatuses = ALLOWED_TRANSITIONS[order.orderStatus]
+  // "Not yet" on a deployment with alerts switched off would send an operator
+  // hunting for a failure that is a setting.
+  const alertsOn = whatsappAlertsEnabled(env())
 
   return (
     <>
@@ -162,7 +166,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 />
                 <Row
                   label="WhatsApp alert"
-                  value={order.payment.notifiedAt ? sgt(order.payment.notifiedAt) : 'Not yet'}
+                  value={
+                    order.payment.notifiedAt
+                      ? sgt(order.payment.notifiedAt)
+                      : alertsOn
+                        ? 'Not yet'
+                        : 'Alerts switched off'
+                  }
                 />
               </dl>
             ) : (

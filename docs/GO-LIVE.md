@@ -161,6 +161,10 @@ message, it never loses an order.
       never delivered. Without an approved template the alert silently does not exist.
 - [ ] **3.10 Send yourself one** on the live number and confirm it arrives on the phone
       that will be watched during service.
+- [ ] **3.11 If Meta is still reviewing you, set `WHATSAPP_ALERTS_DISABLED=true`** and
+      launch without alerts rather than waiting. Receipts still go out; you watch the
+      admin console for orders until it comes off. Exact behaviour and the near-miss
+      rule are in `docs/CREDENTIALS.md`.
 
 ## Phase 4 — Infrastructure
 
@@ -236,7 +240,9 @@ Do these as one sitting, not spread across a week.
 8. [ ] Confirm backups are running and the restore rehearsal is documented.
 9. [ ] **Run the real-money smoke test** (below).
 10. [ ] Trigger one CRITICAL alert deliberately and check it reaches a phone.
-11. [ ] Only then, announce.
+11. [ ] **Remove `WHATSAPP_ALERTS_DISABLED`** if it was ever set, and redeploy. While
+        it is set, the admin console is the only thing that tells you an order arrived.
+12. [ ] Only then, announce.
 
 > The deploy enforces part of this itself: production refuses to start with a Stripe
 > **test** key, a malformed signing secret, a placeholder app secret, a non-HTTPS site
@@ -289,6 +295,7 @@ template are all correct at once, and none of it can be simulated.
 | `WHATSAPP_ACCESS_TOKEN` | Meta → System user, permanent | Yes |
 | `WHATSAPP_BUSINESS_NUMBER` | The shop's own line, E.164 | No |
 | `WHATSAPP_TEMPLATE_NAME` / `_LANGUAGE` | Must match the approved template | No |
+| `WHATSAPP_ALERTS_DISABLED` | Exactly `true` waives the four rows above | No |
 | `R2_ACCOUNT_ID` / `R2_BUCKET` | Cloudflare — **not needed yet** | No |
 | `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare — **not needed yet** | Yes |
 | `NEXT_PUBLIC_R2_PUBLIC_BASE` | R2 public domain — **not needed yet** | No |

@@ -1,5 +1,5 @@
 import 'server-only'
-import { env } from '@/lib/config/env'
+import { env, whatsappAlertsEnabled } from '@/lib/config/env'
 import { formatSgd, cents } from '@/lib/money'
 import { logger } from '@/lib/observability/logger'
 import {
@@ -34,7 +34,7 @@ import {
 
 export type WhatsAppResult =
   | { sent: true; messageId: string | null }
-  | { sent: false; reason: 'NOT_CONFIGURED' | 'SEND_FAILED'; detail?: string }
+  | { sent: false; reason: 'NOT_CONFIGURED' | 'SEND_FAILED' | 'DISABLED'; detail?: string }
 
 /**
  * The four `{{1}}`–`{{4}}` values. Meta rejects a parameter containing a
@@ -76,6 +76,16 @@ export function alertText(order: NotifiableOrder): string {
 
 export async function sendBusinessOrderAlert(order: NotifiableOrder): Promise<WhatsAppResult> {
   const config = env()
+
+  // Switched off on purpose (§16.3): Meta's verification had not landed and
+  // the shop chose to launch on receipts alone. Distinct from NOT_CONFIGURED
+  // below, which is somebody having forgotten — this one is a decision, so it
+  // is INFO rather than a warning and the sweep stops retrying it.
+  if (!whatsappAlertsEnabled(config)) {
+    logger.info('whatsapp.alerts_disabled', { reference: order.reference })
+    return { sent: false, reason: 'DISABLED' }
+  }
+
   const phoneNumberId = config.WHATSAPP_PHONE_NUMBER_ID
   const token = config.WHATSAPP_ACCESS_TOKEN
   const to = config.WHATSAPP_BUSINESS_NUMBER

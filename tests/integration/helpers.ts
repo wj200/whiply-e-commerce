@@ -72,18 +72,18 @@ export async function makeProduct(overrides: ProductOverrides = {}) {
  */
 export async function seedLaunchCatalogue() {
   const rows = [
-    ['WHP-N2O-640-1', 'n2o-cream-charger-640g-single', '640g N₂O Cream Charger — 1 Tank', 'CREAM_CHARGERS', 4000, 120, 1, 10],
-    ['WHP-N2O-640-6', 'n2o-cream-charger-640g-6-pack', '640g N₂O Cream Charger — 6 Tanks', 'CREAM_CHARGERS', 19000, 40, 6, 11],
-    ['WHP-N2O-640-12', 'n2o-cream-charger-640g-12-pack', '640g N₂O Cream Charger — 12 Tanks', 'CREAM_CHARGERS', 35000, 20, 12, 12],
-    ['WHP-N2O-2500-1', 'n2o-cream-charger-2-5kg-single', '2.5kg N₂O Cream Charger — 1 Tank', 'CREAM_CHARGERS', 12000, 60, 1, 20],
-    ['WHP-N2O-2500-2', 'n2o-cream-charger-2-5kg-2-pack', '2.5kg N₂O Cream Charger — 2 Tanks', 'CREAM_CHARGERS', 22000, 25, 2, 21],
-    ['WHP-N2O-2500-4', 'n2o-cream-charger-2-5kg-4-pack', '2.5kg N₂O Cream Charger — 4 Tanks', 'CREAM_CHARGERS', 40000, 12, 4, 22],
+    ['WHP-N2O-640-1', 'n2o-cream-charger-640g-single', '640g Cream Charger — 1 Tank', 'CREAM_CHARGERS', 4000, 120, 1, 10],
+    ['WHP-N2O-640-6', 'n2o-cream-charger-640g-6-pack', '640g Cream Charger — 6 Tanks', 'CREAM_CHARGERS', 19000, 40, 6, 11],
+    ['WHP-N2O-640-12', 'n2o-cream-charger-640g-12-pack', '640g Cream Charger — 12 Tanks', 'CREAM_CHARGERS', 35000, 20, 12, 12],
+    ['WHP-N2O-2500-1', 'n2o-cream-charger-2-5kg-single', '2.5kg Cream Charger — 1 Tank', 'CREAM_CHARGERS', 12000, 60, 1, 20],
+    ['WHP-N2O-2500-2', 'n2o-cream-charger-2-5kg-2-pack', '2.5kg Cream Charger — 2 Tanks', 'CREAM_CHARGERS', 22000, 25, 2, 21],
+    ['WHP-N2O-2500-4', 'n2o-cream-charger-2-5kg-4-pack', '2.5kg Cream Charger — 4 Tanks', 'CREAM_CHARGERS', 40000, 12, 4, 22],
     ['WHP-CR-POWDER-250', 'whipping-cream-powdered-250g', 'Whipping Cream — Powdered, 250g', 'CREAM_PRODUCTS', 2500, 80, 1, 30],
     ['WHP-CR-SPRAY', 'whipping-cream-spray', 'Whipping Cream — Spray', 'CREAM_PRODUCTS', 2000, 80, 1, 31],
     ['WHP-CR-FRESH-250', 'whipping-cream-250g', 'Whipping Cream — 250g', 'CREAM_PRODUCTS', 1000, 100, 1, 32],
     ['WHP-CR-NESTLE-250', 'nestle-all-purpose-cream-250g', 'Nestlé All Purpose Cream — 250g', 'CREAM_PRODUCTS', 1000, 100, 1, 33],
     ['WHP-EQ-DISPENSER', 'whipped-cream-dispenser-stainless-steel', 'Whipped Cream Dispenser — Stainless Steel', 'BAKING_EQUIPMENT', 15000, 20, 1, 40],
-    ['WHP-EQ-SCALE', 'precision-digital-weighing-scale', 'Digital Precision Scale with Timer', 'BAKING_EQUIPMENT', 14000, 15, 1, 41],
+    ['WHP-EQ-SCALE', 'precision-digital-weighing-scale', 'Precision Digital Scale', 'BAKING_EQUIPMENT', 14000, 15, 1, 41],
     ['WHP-EQ-MIXER', 'industrial-grade-professional-mixer', 'Industrial Mixer', 'BAKING_EQUIPMENT', 60000, 8, 1, 42],
   ] as const
 
